@@ -868,7 +868,7 @@ void DetermineBasePaths(std::string_view exe)
 	AppendPathSeparator(tmp);
 	_searchpaths[Searchpath::InstallationDir] = std::move(tmp);
 #endif
-#ifdef WITH_COCOA
+#if defined(WITH_COCOA) || defined(IOS)
 extern void CocoaSetApplicationBundleDir();
 	CocoaSetApplicationBundleDir();
 #else

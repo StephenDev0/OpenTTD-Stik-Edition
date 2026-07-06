@@ -5,7 +5,12 @@ include(GNUInstallDirs)
 # set_directory_options()
 #
 function(set_directory_options)
-    if(APPLE)
+    if(IOS)
+        # $HOME is the sandboxed app container; Documents is exposed in the Files app.
+        set(DEFAULT_PERSONAL_DIR "Documents/OpenTTD")
+        set(DEFAULT_SHARED_DIR "(not set)")
+        set(DEFAULT_GLOBAL_DIR "(not set)")
+    elseif(APPLE)
         set(DEFAULT_PERSONAL_DIR "Documents/OpenTTD")
         set(DEFAULT_SHARED_DIR "/Library/Application Support/OpenTTD")
         set(DEFAULT_GLOBAL_DIR "(not set)")

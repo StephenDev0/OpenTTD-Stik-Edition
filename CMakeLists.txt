@@ -23,7 +23,14 @@ if (EMSCRIPTEN)
 endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
-set(CMAKE_OSX_DEPLOYMENT_TARGET 10.15)
+if(IOS)
+    if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+        # Xcode 27+ refuses deployment targets below 15.0.
+        set(CMAKE_OSX_DEPLOYMENT_TARGET 15.0)
+    endif()
+else()
+    set(CMAKE_OSX_DEPLOYMENT_TARGET 10.15)
+endif()
 
 # Use GNUInstallDirs to allow customisation
 # but set our own default data and bin dir
@@ -142,6 +149,9 @@ endif()
 if(NOT OPTION_DEDICATED)
     if(WIN32)
         find_package(Xaudio2)
+    elseif(IOS)
+        # SDL2 provides the video and sound drivers on iOS.
+        find_package(SDL2 REQUIRED)
     else()
         find_package(Allegro)
         if(NOT APPLE)
@@ -162,13 +172,15 @@ if(APPLE)
 
     find_package(Iconv)
 
-    find_library(AUDIOTOOLBOX_LIBRARY AudioToolbox)
-    find_library(AUDIOUNIT_LIBRARY AudioUnit)
-    find_library(COCOA_LIBRARY Cocoa)
-    find_library(QUARTZCORE_LIBRARY QuartzCore)
+    if(NOT IOS)
+        find_library(AUDIOTOOLBOX_LIBRARY AudioToolbox)
+        find_library(AUDIOUNIT_LIBRARY AudioUnit)
+        find_library(COCOA_LIBRARY Cocoa)
+        find_library(QUARTZCORE_LIBRARY QuartzCore)
+    endif()
 endif()
 
-if(NOT EMSCRIPTEN AND NOT OPTION_DEDICATED)
+if(NOT EMSCRIPTEN AND NOT OPTION_DEDICATED AND NOT IOS)
     find_package(OpenGL COMPONENTS OpenGL)
 endif()
 
@@ -196,7 +208,7 @@ if(UNIX AND NOT APPLE AND NOT OPTION_DEDICATED)
         message(WARNING "Without HarfBuzz and ICU i18n the game will not be able to render right-to-left languages correctly")
     endif()
 endif()
-if(APPLE)
+if(APPLE AND NOT IOS)
     if(NOT AUDIOTOOLBOX_LIBRARY)
         message(FATAL_ERROR "AudioToolbox is required for this platform")
     endif()
@@ -291,8 +303,13 @@ if(ANDROID)
     target_link_libraries(openttd_test PRIVATE log)
 endif()
 
-include(Catch)
-catch_discover_tests(openttd_test)
+if(IOS)
+    # Tests cannot be run on the build machine when cross-compiling for iOS.
+    set_target_properties(openttd_test PROPERTIES EXCLUDE_FROM_ALL TRUE)
+else()
+    include(Catch)
+    catch_discover_tests(openttd_test)
+endif()
 
 if(HAIKU)
     target_link_libraries(openttd_lib "be" "network" "midi")
@@ -347,16 +364,22 @@ include(3rdparty/llvm/CheckAtomic)
 if(APPLE)
     link_package(Iconv TARGET Iconv::Iconv)
 
-    target_link_libraries(openttd_lib
-        ${AUDIOTOOLBOX_LIBRARY}
-        ${AUDIOUNIT_LIBRARY}
-        ${COCOA_LIBRARY}
-        ${QUARTZCORE_LIBRARY}
-    )
+    if(IOS)
+        add_definitions(
+            -DIOS
+        )
+    else()
+        target_link_libraries(openttd_lib
+            ${AUDIOTOOLBOX_LIBRARY}
+            ${AUDIOUNIT_LIBRARY}
+            ${COCOA_LIBRARY}
+            ${QUARTZCORE_LIBRARY}
+        )
 
-    add_definitions(
-        -DWITH_COCOA
-    )
+        add_definitions(
+            -DWITH_COCOA
+        )
+    endif()
 endif()
 
 if(EMSCRIPTEN)
@@ -464,8 +487,42 @@ enable_testing()
 
 add_subdirectory(regression)
 
-if(APPLE OR WIN32)
-    find_package(Pandoc)
-endif()
+if(IOS)
+    # SDL2main provides the real main(); see src/os/ios/ios_main.mm.
+    target_link_libraries(openttd SDL2::SDL2main SDL2::SDL2)
 
-include(InstallAndPackage)
+    set_target_properties(openttd PROPERTIES
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/os/ios/Info.plist.in"
+        MACOSX_BUNDLE_BUNDLE_NAME "OpenTTD"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "org.openttd.openttd"
+        MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+        XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2"
+    )
+
+    # iOS app bundles are flat; ship the game data next to the binary.
+    add_custom_command(TARGET openttd POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/lang $<TARGET_BUNDLE_CONTENT_DIR:openttd>/lang
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/baseset $<TARGET_BUNDLE_CONTENT_DIR:openttd>/baseset
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/ai $<TARGET_BUNDLE_CONTENT_DIR:openttd>/ai
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/game $<TARGET_BUNDLE_CONTENT_DIR:openttd>/game
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bin/scripts $<TARGET_BUNDLE_CONTENT_DIR:openttd>/scripts
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/os/ios/icons $<TARGET_BUNDLE_CONTENT_DIR:openttd>
+        COMMENT "Copying game data into the app bundle"
+    )
+
+    set(OPTION_IOS_BUNDLE_CONTENT "" CACHE PATH "Directory whose contents are copied into the iOS bundle's baseset directory")
+    if(OPTION_IOS_BUNDLE_CONTENT)
+        add_custom_command(TARGET openttd POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory ${OPTION_IOS_BUNDLE_CONTENT} $<TARGET_BUNDLE_CONTENT_DIR:openttd>/baseset
+            COMMENT "Copying extra baseset content into the app bundle"
+        )
+    endif()
+else()
+    if(APPLE OR WIN32)
+        find_package(Pandoc)
+    endif()
+
+    include(InstallAndPackage)
+endif()

@@ -2812,7 +2812,7 @@ extern EventState VpHandlePlaceSizingDrag();
 
 const std::chrono::milliseconds TIME_BETWEEN_DOUBLE_CLICK{500}; ///< Time between 2 left clicks before it becoming a double click.
 
-static void ScrollMainViewport(int x, int y)
+void ScrollMainViewport(int x, int y)
 {
 	if (_game_mode != GameMode::Menu && _game_mode != GameMode::Bootstrap) {
 		Window *w = GetMainWindow();
