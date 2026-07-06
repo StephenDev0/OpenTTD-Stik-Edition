@@ -92,6 +92,12 @@ void VideoDriver_SDL_Default::Paint()
 {
 	PerformanceMeasurer framerate(PFE_VIDEO);
 
+#ifdef IOS
+	/* iOS rejects GPU work while not foreground-active; the dirty rect keeps accumulating. */
+	extern bool IOSAppIsActive();
+	if (!IOSAppIsActive()) return;
+#endif
+
 	if (IsEmptyRect(this->dirty_rect) && this->local_palette.count_dirty == 0) return;
 
 	if (this->local_palette.count_dirty != 0) {

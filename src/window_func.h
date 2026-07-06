@@ -28,6 +28,8 @@ int PositionNetworkChatWindow(Window *w);
 int GetMainViewTop();
 int GetMainViewBottom();
 
+void ScrollMainViewport(int x, int y);
+
 void InitWindowSystem();
 void UnInitWindowSystem();
 void ResetWindowSystem();

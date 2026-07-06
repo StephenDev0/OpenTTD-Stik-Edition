@@ -1791,12 +1791,19 @@ void UpdateGUIZoom()
 {
 	/* Determine real GUI zoom to use. */
 	if (_gui_scale_cfg == -1) {
+#ifdef IOS
+		/* Screen-size based autodetection produces a too small scale for touch
+		 * input; buttons must be large enough to hit with a finger. */
+		extern int IOSGetSuggestedUIScale();
+		_gui_scale = Clamp(IOSGetSuggestedUIScale(), MIN_INTERFACE_SCALE, MAX_INTERFACE_SCALE);
+#else
 		/* Minimum design size of the game is 640x480. */
 		float xs = _screen.width / 640.f;
 		float ys = _screen.height / 480.f;
 		int scale = std::min(xs, ys) * 100;
 		/* Round down scaling to 25% increments and clamp to limits. */
 		_gui_scale = Clamp((scale / 25) * 25, MIN_INTERFACE_SCALE, MAX_INTERFACE_SCALE);
+#endif
 	} else {
 		_gui_scale = Clamp(_gui_scale_cfg, MIN_INTERFACE_SCALE, MAX_INTERFACE_SCALE);
 	}

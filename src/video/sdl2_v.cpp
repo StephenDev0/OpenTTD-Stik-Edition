@@ -19,6 +19,11 @@
 #include "../fileio_func.h"
 #include "../framerate_type.h"
 #include "../window_func.h"
+#ifdef IOS
+#	include "../viewport_func.h"
+#	include "../window_gui.h"
+#	include "../tilehighlight_func.h"
+#endif
 #include "sdl2_v.h"
 #include <SDL.h>
 #ifdef __EMSCRIPTEN__
@@ -27,6 +32,243 @@
 #endif
 
 #include "../safeguards.h"
+
+#ifdef IOS
+/* Touch input: tap = left click, long press = right click, pinch = zoom.
+ * Dragging on the map pans it, unless a build tool is active or the drag starts
+ * on a window; then it is a left-button drag (build, move windows, scrollbars).
+ * Two-finger drag always pans; double-tapping the map zooms in.
+ * SDL's own touch-to-mouse synthesis is disabled. */
+
+/** State of the current touch gesture. */
+enum class TouchState {
+	None,     ///< No fingers on the screen.
+	Pending,  ///< One finger down; may become a tap, drag or long press.
+	LeftDrag, ///< One finger dragging with emulated left mouse button held.
+	PanZoom,  ///< Multi-finger viewport pan/zoom.
+	Consumed, ///< Gesture fully handled (e.g. long press); ignore fingers until all lift.
+};
+
+static TouchState _touch_state = TouchState::None; ///< Current gesture state.
+static SDL_FingerID _touch_fingers[2]; ///< Ids of the tracked fingers.
+static int _touch_finger_count = 0; ///< Number of tracked fingers.
+static Point _touch_pos[2]; ///< Last known position of each tracked finger.
+static Point _touch_delta[2]; ///< Last motion delta of each tracked finger.
+static Point _touch_start; ///< Position of the initial finger down.
+static std::chrono::steady_clock::time_point _touch_down_time; ///< When the initial finger went down.
+static std::chrono::steady_clock::time_point _touch_last_tap_time; ///< When the last tap was released.
+static Point _touch_last_tap_pos; ///< Position of the last tap.
+static float _touch_pinch_base = 0.0f; ///< Finger distance at the last zoom step / pan re-anchor.
+static float _touch_pan_rem_x = 0.0f; ///< Fractional pan remainder, x.
+static float _touch_pan_rem_y = 0.0f; ///< Fractional pan remainder, y.
+
+static const int TOUCH_SLOP = 12; ///< Movement in pixels before a touch becomes a drag.
+static const int TOUCH_DOUBLE_TAP_SLOP = 30; ///< Maximum distance between the taps of a double-tap.
+static const float TOUCH_PINCH_STEP = 1.3f; ///< Finger-distance ratio per viewport zoom step.
+static constexpr std::chrono::milliseconds TOUCH_LONG_PRESS_TIME(500); ///< Hold time before a touch becomes a right click.
+static constexpr std::chrono::milliseconds TOUCH_DOUBLE_TAP_TIME(400); ///< Maximum time between the taps of a double-tap.
+
+/** Get the position of a finger event in screen pixels. */
+static Point TouchEventPosition(const SDL_TouchFingerEvent &tfinger)
+{
+	return { (int)(tfinger.x * _screen.width), (int)(tfinger.y * _screen.height) };
+}
+
+/** Get the tracking slot of a finger, or -1 if it is not tracked. */
+static int TouchFingerIndex(SDL_FingerID finger)
+{
+	for (int i = 0; i < _touch_finger_count; i++) {
+		if (_touch_fingers[i] == finger) return i;
+	}
+	return -1;
+}
+
+/** Move the game cursor to the given position. */
+static void TouchSetCursor(Point p)
+{
+	_cursor.UpdateCursorPosition(p.x, p.y);
+	HandleMouseEvents();
+}
+
+/** Press or release the emulated left mouse button. */
+static void TouchLeftButton(bool down)
+{
+	_left_button_down = down;
+	if (!down) _left_button_clicked = false;
+	HandleMouseEvents();
+}
+
+/** Whether a touch at the given position addresses the map itself, i.e. should pan/zoom it. */
+static bool TouchOnMap(Point p)
+{
+	if (_thd.place_mode != HT_NONE) return false;
+	Window *w = FindWindowFromPt(p.x, p.y);
+	return w != nullptr && w->window_class == WC_MAIN_WINDOW;
+}
+
+/** Handle SDL finger events; return true if the event was handled. */
+static bool TouchHandleEvent(const SDL_Event &ev)
+{
+	switch (ev.type) {
+		case SDL_FINGERDOWN: {
+			Point p = TouchEventPosition(ev.tfinger);
+			if (_touch_finger_count == 0) {
+				_touch_fingers[0] = ev.tfinger.fingerId;
+				_touch_pos[0] = p;
+				_touch_start = p;
+				_touch_down_time = std::chrono::steady_clock::now();
+				_touch_finger_count = 1;
+				_touch_state = TouchState::Pending;
+				_cursor.in_window = true;
+				TouchSetCursor(p);
+			} else if (_touch_finger_count == 1) {
+				if (_touch_state == TouchState::LeftDrag) TouchLeftButton(false);
+				_touch_fingers[1] = ev.tfinger.fingerId;
+				_touch_pos[1] = p;
+				_touch_finger_count = 2;
+				_touch_delta[0] = _touch_delta[1] = {0, 0};
+				_touch_pinch_base = std::hypot((float)(p.x - _touch_pos[0].x), (float)(p.y - _touch_pos[0].y));
+				_touch_pan_rem_x = _touch_pan_rem_y = 0.0f;
+				if (_touch_state != TouchState::Consumed) _touch_state = TouchState::PanZoom;
+			}
+			return true;
+		}
+
+		case SDL_FINGERMOTION: {
+			int idx = TouchFingerIndex(ev.tfinger.fingerId);
+			if (idx < 0) return true;
+			Point p = TouchEventPosition(ev.tfinger);
+
+			switch (_touch_state) {
+				case TouchState::Pending:
+					if (Delta(p.x, _touch_start.x) > TOUCH_SLOP || Delta(p.y, _touch_start.y) > TOUCH_SLOP) {
+						if (TouchOnMap(_touch_start)) {
+							_touch_state = TouchState::PanZoom;
+							ScrollMainViewport(-(p.x - _touch_start.x), -(p.y - _touch_start.y));
+						} else {
+							_touch_state = TouchState::LeftDrag;
+							TouchLeftButton(true);
+							TouchSetCursor(p);
+						}
+					}
+					break;
+
+				case TouchState::LeftDrag:
+					TouchSetCursor(p);
+					break;
+
+				case TouchState::PanZoom:
+					if (_touch_finger_count == 2) {
+						Point other = _touch_pos[idx ^ 1];
+						Point d = {p.x - _touch_pos[idx].x, p.y - _touch_pos[idx].y};
+
+						/* Pan by the midpoint of both fingers; carry fractional remainders. */
+						_touch_pan_rem_x += d.x / 2.0f;
+						_touch_pan_rem_y += d.y / 2.0f;
+						int sx = (int)_touch_pan_rem_x;
+						int sy = (int)_touch_pan_rem_y;
+						_touch_pan_rem_x -= sx;
+						_touch_pan_rem_y -= sy;
+						if (sx != 0 || sy != 0) ScrollMainViewport(-sx, -sy);
+
+						/* The fingers report their motion in separate events, so during a fast
+						 * pan the finger distance oscillates. Only zoom while the fingers move
+						 * towards/away from each other; while they move the same way (panning)
+						 * re-anchor the base distance so jitter cannot become a zoom step. */
+						float dist = std::hypot((float)(p.x - other.x), (float)(p.y - other.y));
+						Point od = _touch_delta[idx ^ 1];
+						if (d.x * od.x + d.y * od.y > 0) {
+							_touch_pinch_base = dist;
+						} else if (_touch_pinch_base > 0.0f && dist > 0.0f) {
+							bool in = dist >= _touch_pinch_base * TOUCH_PINCH_STEP;
+							bool out = dist * TOUCH_PINCH_STEP <= _touch_pinch_base;
+							if (in || out) {
+								/* Zoom around the point between the fingers. */
+								TouchSetCursor({(p.x + other.x) / 2, (p.y + other.y) / 2});
+								ZoomInOrOutToCursorWindow(in, GetMainWindow());
+								_touch_pinch_base = dist;
+							}
+						}
+						_touch_delta[idx] = d;
+					} else {
+						ScrollMainViewport(-(p.x - _touch_pos[idx].x), -(p.y - _touch_pos[idx].y));
+					}
+					break;
+
+				default:
+					break;
+			}
+
+			_touch_pos[idx] = p;
+			return true;
+		}
+
+		case SDL_FINGERUP: {
+			int idx = TouchFingerIndex(ev.tfinger.fingerId);
+			if (idx < 0) return true;
+
+			switch (_touch_state) {
+				case TouchState::Pending: {
+					auto now = std::chrono::steady_clock::now();
+					if (TouchOnMap(_touch_start) &&
+							now - _touch_last_tap_time <= TOUCH_DOUBLE_TAP_TIME &&
+							Delta(_touch_start.x, _touch_last_tap_pos.x) <= TOUCH_DOUBLE_TAP_SLOP &&
+							Delta(_touch_start.y, _touch_last_tap_pos.y) <= TOUCH_DOUBLE_TAP_SLOP) {
+						TouchSetCursor(_touch_start);
+						ZoomInOrOutToCursorWindow(true, GetMainWindow());
+						_touch_last_tap_time = {};
+					} else {
+						TouchSetCursor(_touch_start);
+						TouchLeftButton(true);
+						TouchLeftButton(false);
+						_touch_last_tap_time = now;
+						_touch_last_tap_pos = _touch_start;
+					}
+					break;
+				}
+
+				case TouchState::LeftDrag:
+					TouchSetCursor(TouchEventPosition(ev.tfinger));
+					TouchLeftButton(false);
+					break;
+
+				default:
+					break;
+			}
+
+			if (idx == 0 && _touch_finger_count == 2) {
+				_touch_fingers[0] = _touch_fingers[1];
+				_touch_pos[0] = _touch_pos[1];
+			}
+			if (_touch_finger_count > 0) _touch_finger_count--;
+			if (_touch_finger_count == 0) {
+				_touch_state = TouchState::None;
+			} else if (_touch_state != TouchState::Consumed) {
+				_touch_state = TouchState::PanZoom;
+			}
+			return true;
+		}
+
+		default:
+			return false;
+	}
+}
+
+/** Turn a touch that is held in place long enough into a right click. */
+static void TouchCheckLongPress()
+{
+	if (_touch_state != TouchState::Pending) return;
+	if (std::chrono::steady_clock::now() - _touch_down_time < TOUCH_LONG_PRESS_TIME) return;
+
+	_touch_state = TouchState::Consumed;
+	TouchSetCursor(_touch_start);
+	_right_button_down = true;
+	_right_button_clicked = true;
+	HandleMouseEvents();
+	_right_button_down = false;
+	HandleMouseEvents();
+}
+#endif /* IOS */
 
 void VideoDriver_SDL_Base::MakeDirty(int left, int top, int width, int height)
 {
@@ -160,6 +402,12 @@ bool VideoDriver_SDL_Base::CreateMainWindow(uint w, uint h, uint flags)
 		Debug(driver, 0, "SDL2: Couldn't allocate a window to draw on: {}", SDL_GetError());
 		return false;
 	}
+
+#ifdef IOS
+	/* Attach the window to the UIScene connected by UIKit; see os/ios/ios.mm. */
+	extern void IOSSetSDLWindow(SDL_Window *window);
+	IOSSetSDLWindow(this->sdl_window);
+#endif
 
 	std::string icon_path = FioFindFullPath(BASESET_DIR, "openttd.32.bmp");
 	if (!icon_path.empty()) {
@@ -382,6 +630,10 @@ bool VideoDriver_SDL_Base::PollEvent()
 
 	if (!SDL_PollEvent(&ev)) return false;
 
+#ifdef IOS
+	if (TouchHandleEvent(ev)) return true;
+#endif
+
 	switch (ev.type) {
 		case SDL_MOUSEMOTION: {
 			int32_t x = ev.motion.x;
@@ -561,6 +813,12 @@ std::optional<std::string_view> VideoDriver_SDL_Base::Start(const StringList &pa
 	auto error = this->Initialize();
 	if (error) return error;
 
+#ifdef IOS
+	/* Touches are handled by TouchHandleEvent; don't let SDL synthesize mouse events for them. */
+	SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
+	SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "0");
+#endif
+
 #ifdef SDL_HINT_MOUSE_AUTO_CAPTURE
 	if (GetDriverParamBool(param, "no_mouse_capture")) {
 		/* By default SDL captures the mouse, while a button is pressed.
@@ -608,6 +866,10 @@ void VideoDriver_SDL_Base::Stop()
 
 void VideoDriver_SDL_Base::InputLoop()
 {
+#ifdef IOS
+	TouchCheckLongPress();
+#endif
+
 	uint32_t mod = SDL_GetModState();
 	const Uint8 *keys = SDL_GetKeyboardState(nullptr);
 
