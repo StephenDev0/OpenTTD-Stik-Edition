@@ -15,8 +15,10 @@
 
 CommandCost CmdFileIpo(DoCommandFlags flags, uint8_t float_pct);
 CommandCost CmdIssueDividend(DoCommandFlags flags, Money amount);
+CommandCost CmdSetDividendPolicy(DoCommandFlags flags, uint8_t percent);
 
-DEF_CMD_TRAIT(CMD_FILE_IPO,       CmdFileIpo,       {}, CommandType::MoneyManagement)
-DEF_CMD_TRAIT(CMD_ISSUE_DIVIDEND, CmdIssueDividend, {}, CommandType::MoneyManagement)
+DEF_CMD_TRAIT(CMD_FILE_IPO,            CmdFileIpo,            {}, CommandType::MoneyManagement)
+DEF_CMD_TRAIT(CMD_ISSUE_DIVIDEND,      CmdIssueDividend,      {}, CommandType::MoneyManagement)
+DEF_CMD_TRAIT(CMD_SET_DIVIDEND_POLICY, CmdSetDividendPolicy,  {}, CommandType::CompanySetting)
 
 #endif /* FINANCE_CMD_H */

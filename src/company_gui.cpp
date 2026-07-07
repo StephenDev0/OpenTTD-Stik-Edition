@@ -25,6 +25,7 @@
 #include "strings_func.h"
 #include "timer/timer_game_economy.h"
 #include "dropdown_type.h"
+#include "dropdown_func.h" /* CITYSIM */
 #include "tilehighlight_func.h"
 #include "company_base.h"
 #include "finance_cmd.h" /* CITYSIM */
@@ -315,6 +316,7 @@ static constexpr std::initializer_list<NWidgetPart> _nested_company_finances_wid
 				/* CITYSIM: stock market rows. */
 				NWidget(WWT_TEXT, INVALID_COLOUR), SetStringTip(STR_FINANCES_VALUATION_TITLE), SetPadding(WidgetDimensions::unscaled.vsep_normal, 0, 0, 0),
 				NWidget(WWT_TEXT, INVALID_COLOUR), SetStringTip(STR_FINANCES_SHARES_TITLE),
+				NWidget(WWT_TEXT, INVALID_COLOUR), SetStringTip(STR_FINANCES_DIVIDEND_POLICY_TITLE), SetFill(0, 1),
 				/* CITYSIM: end. */
 			EndContainer(),
 			NWidget(NWID_VERTICAL), // Vertical column with bank balance amount, loan amount, and total.
@@ -325,6 +327,7 @@ static constexpr std::initializer_list<NWidgetPart> _nested_company_finances_wid
 				/* CITYSIM: stock market rows. */
 				NWidget(WWT_TEXT, INVALID_COLOUR, WID_CF_VALUATION_VALUE), SetAlignment(SA_VERT_CENTER | SA_RIGHT | SA_FORCE), SetPadding(WidgetDimensions::unscaled.vsep_normal, 0, 0, 0),
 				NWidget(WWT_TEXT, INVALID_COLOUR, WID_CF_SHARE_STATUS_VALUE), SetAlignment(SA_VERT_CENTER | SA_RIGHT | SA_FORCE),
+				NWidget(WWT_DROPDOWN, COLOUR_GREY, WID_CF_DIVIDEND_POLICY), SetFill(1, 0), SetToolTip(STR_FINANCES_DIVIDEND_POLICY_TOOLTIP),
 				/* CITYSIM: end. */
 			EndContainer(),
 			NWidget(NWID_SELECTION, INVALID_COLOUR, WID_CF_SEL_MAXLOAN),
@@ -409,8 +412,13 @@ struct CompanyFinancesWindow : Window {
 
 			case WID_CF_SHARE_STATUS_VALUE: {
 				const Company *c = Company::Get(this->window_number);
-				if (c->is_public) return GetString(STR_FINANCES_SHARE_STATUS_PUBLIC, c->share_price);
+				if (c->is_public) return GetString(STR_FINANCES_SHARE_STATUS_PUBLIC, c->public_float_pct, c->share_price);
 				return GetString(CheckIpoEligibility(c).IsEligible() ? STR_FINANCES_SHARE_STATUS_ELIGIBLE : STR_FINANCES_SHARE_STATUS_PRIVATE);
+			}
+
+			case WID_CF_DIVIDEND_POLICY: {
+				const Company *c = Company::Get(this->window_number);
+				return GetString(STR_FINANCES_DIVIDEND_POLICY_VALUE, c->dividend_policy);
 			}
 
 			case WID_CF_PAY_DIVIDEND:
@@ -515,9 +523,10 @@ struct CompanyFinancesWindow : Window {
 			const Company *c = Company::Get(company);
 			this->SetWidgetDisabledState(WID_CF_INCREASE_LOAN, c->current_loan >= c->GetMaxLoan()); // Borrow button only shows when there is any more money to loan.
 			this->SetWidgetDisabledState(WID_CF_REPAY_LOAN, company != _local_company || c->current_loan == 0); // Repay button only shows when there is any more money to repay.
-			/* CITYSIM: IPO only once; dividends only for public companies. */
+			/* CITYSIM: IPO only once; dividends and policy only for public companies. */
 			this->SetWidgetDisabledState(WID_CF_FILE_IPO, c->is_public);
 			this->SetWidgetDisabledState(WID_CF_PAY_DIVIDEND, !c->is_public);
+			this->SetWidgetDisabledState(WID_CF_DIVIDEND_POLICY, company != _local_company || !c->is_public);
 		}
 
 		this->DrawWidgets();
@@ -558,9 +567,27 @@ struct CompanyFinancesWindow : Window {
 			case WID_CF_PAY_DIVIDEND:
 				Command<CMD_ISSUE_DIVIDEND>::Post(STR_ERROR_CAN_T_PAY_DIVIDEND, _ctrl_pressed ? DIVIDEND_INTERVAL * 10 : DIVIDEND_INTERVAL);
 				break;
+
+			case WID_CF_DIVIDEND_POLICY: {
+				const Company *c = Company::Get(this->window_number);
+				DropDownList list;
+				for (uint8_t percent : {0, 10, 25, 50, 100}) {
+					list.push_back(MakeDropDownListStringItem(GetString(STR_FINANCES_DIVIDEND_POLICY_VALUE, percent), percent));
+				}
+				ShowDropDownList(this, std::move(list), c->dividend_policy, WID_CF_DIVIDEND_POLICY);
+				break;
+			}
 			/* CITYSIM: end. */
 		}
 	}
+
+	/* CITYSIM: dividend policy selection. */
+	void OnDropdownSelect(WidgetID widget, int index, int) override
+	{
+		if (widget != WID_CF_DIVIDEND_POLICY) return;
+		Command<CMD_SET_DIVIDEND_POLICY>::Post(STR_ERROR_CAN_T_SET_DIVIDEND_POLICY, ClampTo<uint8_t>(index));
+	}
+	/* CITYSIM: end. */
 
 	void RefreshVisibleColumns()
 	{

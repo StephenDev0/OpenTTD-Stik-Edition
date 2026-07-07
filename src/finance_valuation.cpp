@@ -9,8 +9,11 @@
 
 #include "stdafx.h"
 #include "company_base.h"
+#include "company_func.h"
+#include "core/backup_type.hpp"
 #include "finance_valuation.h"
 #include "timer/timer_game_economy.h"
+#include "window_func.h"
 
 #include "safeguards.h"
 
@@ -64,4 +67,40 @@ IpoEligibility CheckIpoEligibility(const Company *c)
 	}
 
 	return result;
+}
+
+/**
+ * Quarterly update of all public companies: refresh the share price from the
+ * current valuation, and pay out the automatic dividend policy.
+ *
+ * Must be called from the deterministic game loop right after the quarterly
+ * economy history has rotated, so that old_economy[0] is the just-closed
+ * quarter (see CompaniesGenStatistics).
+ */
+void UpdatePublicCompaniesFinance()
+{
+	Backup<CompanyID> cur_company(_current_company);
+
+	for (Company *c : Company::Iterate()) {
+		if (!c->is_public) continue;
+
+		if (c->shares_outstanding != 0) {
+			c->share_price = CalculateIncomeBasedValuation(c) / c->shares_outstanding;
+		}
+
+		if (c->dividend_policy > 0) {
+			Money profit = c->old_economy[0].income + c->old_economy[0].expenses;
+			if (profit > 0) {
+				Money payout = profit * c->dividend_policy / 100;
+				if (payout > 0 && GetAvailableMoney(c->index) >= payout) {
+					cur_company.Change(c->index);
+					SubtractMoneyFromCompany(CommandCost(EXPENSES_OTHER, payout));
+				}
+			}
+		}
+
+		SetWindowDirty(WC_FINANCES, c->index);
+	}
+
+	cur_company.Restore();
 }

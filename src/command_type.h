@@ -302,6 +302,7 @@ enum Commands : uint8_t {
 	CMD_PLACE_PLAYER_HOUSE,           ///< CITYSIM: place a house as a company (city building)
 	CMD_FILE_IPO,                     ///< CITYSIM: take the company public
 	CMD_ISSUE_DIVIDEND,               ///< CITYSIM: pay a dividend to public shareholders
+	CMD_SET_DIVIDEND_POLICY,          ///< CITYSIM: set the automatic dividend policy
 
 	CMD_ORDER_REFIT,                  ///< change the refit information of an order (for "goto depot" )
 	CMD_CLONE_ORDER,                  ///< clone (and share) an order

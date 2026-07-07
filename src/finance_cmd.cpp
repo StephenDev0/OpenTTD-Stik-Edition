@@ -78,3 +78,27 @@ CommandCost CmdIssueDividend(DoCommandFlags flags, Money amount)
 	/* The framework charges the amount and refuses it when unaffordable. */
 	return CommandCost(EXPENSES_OTHER, amount);
 }
+
+/**
+ * Set the automatic dividend policy of the company.
+ * Each quarter this percentage of the quarter's operating profit is paid out
+ * to the public shareholders (see UpdatePublicCompaniesFinance).
+ * @param flags Type of operation.
+ * @param percent Percentage of quarterly profit to pay out (0 disables).
+ * @return Empty cost or an error.
+ */
+CommandCost CmdSetDividendPolicy(DoCommandFlags flags, uint8_t percent)
+{
+	Company *c = Company::GetIfValid(_current_company);
+	if (c == nullptr) return CMD_ERROR;
+
+	if (percent > 100) return CMD_ERROR;
+	if (!c->is_public) return CommandCost(STR_ERROR_DIVIDEND_NOT_PUBLIC);
+
+	if (flags.Test(DoCommandFlag::Execute)) {
+		c->dividend_policy = percent;
+		SetWindowDirty(WC_FINANCES, c->index);
+	}
+
+	return CommandCost();
+}

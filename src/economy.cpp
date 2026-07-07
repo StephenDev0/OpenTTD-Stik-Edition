@@ -40,6 +40,7 @@
 #include "station_base.h"
 #include "waypoint_base.h"
 #include "economy_base.h"
+#include "finance_valuation.h" /* CITYSIM */
 #include "core/pool_func.hpp"
 #include "core/backup_type.hpp"
 #include "core/container_func.hpp"
@@ -687,6 +688,9 @@ static void CompaniesGenStatistics()
 		UpdateCompanyRatingAndValue(c, true);
 		if (c->block_preview != 0) c->block_preview--;
 	}
+
+	/* CITYSIM: quarterly share price refresh and automatic dividends. */
+	UpdatePublicCompaniesFinance();
 
 	SetWindowDirty(WC_INCOME_GRAPH, 0);
 	SetWindowDirty(WC_OPERATING_PROFIT, 0);

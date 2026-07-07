@@ -3980,9 +3980,12 @@ STR_FINANCES_INFRASTRUCTURE_BUTTON                              :{BLACK}Infrastr
 # Finances stock market section (CITYSIM)
 STR_FINANCES_VALUATION_TITLE                                    :{WHITE}Market Valuation
 STR_FINANCES_SHARES_TITLE                                       :{WHITE}Listing
-STR_FINANCES_SHARE_STATUS_PUBLIC                                :{BLACK}Public, share price {CURRENCY_LONG}
+STR_FINANCES_SHARE_STATUS_PUBLIC                                :{BLACK}Public, {NUM}% floated, share price {CURRENCY_LONG}
 STR_FINANCES_SHARE_STATUS_ELIGIBLE                              :{BLACK}Private, eligible for IPO
 STR_FINANCES_SHARE_STATUS_PRIVATE                               :{BLACK}Private, not eligible for IPO
+STR_FINANCES_DIVIDEND_POLICY_TITLE                              :{WHITE}Dividend Policy
+STR_FINANCES_DIVIDEND_POLICY_VALUE                              :{BLACK}{NUM}% of profit
+STR_FINANCES_DIVIDEND_POLICY_TOOLTIP                            :{BLACK}Percentage of each quarter's operating profit automatically paid to public shareholders
 STR_FINANCES_IPO_BUTTON                                         :{BLACK}File IPO
 STR_FINANCES_IPO_TOOLTIP                                        :{BLACK}Take the company public. Requires an established, profitable company; proceeds are based on the market valuation
 STR_FINANCES_DIVIDEND_BUTTON                                    :{BLACK}Dividend {CURRENCY_LONG}
@@ -5103,6 +5106,7 @@ STR_ERROR_IPO_COMPANY_TOO_YOUNG                                 :{WHITE}... comp
 STR_ERROR_IPO_NOT_PROFITABLE                                    :{WHITE}... company needs 4 consecutive profitable quarters
 STR_ERROR_IPO_VALUATION_TOO_LOW                                 :{WHITE}... market valuation is too low
 STR_ERROR_CAN_T_PAY_DIVIDEND                                    :{WHITE}Can't pay dividend...
+STR_ERROR_CAN_T_SET_DIVIDEND_POLICY                             :{WHITE}Can't change dividend policy...
 STR_ERROR_DIVIDEND_NOT_PUBLIC                                   :{WHITE}... company is not public
 
 # Town related errors

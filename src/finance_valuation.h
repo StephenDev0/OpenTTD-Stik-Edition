@@ -48,5 +48,6 @@ struct IpoEligibility {
 
 Money CalculateIncomeBasedValuation(const Company *c);
 IpoEligibility CheckIpoEligibility(const Company *c);
+void UpdatePublicCompaniesFinance();
 
 #endif /* FINANCE_VALUATION_H */
