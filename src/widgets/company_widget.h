@@ -72,6 +72,10 @@ enum CompanyFinancesWidgets : WidgetID {
 	WID_CF_INCREASE_LOAN,  ///< Increase loan.
 	WID_CF_REPAY_LOAN,     ///< Decrease loan..
 	WID_CF_INFRASTRUCTURE, ///< View company infrastructure.
+	WID_CF_VALUATION_VALUE,   ///< CITYSIM: Income-based market valuation value.
+	WID_CF_SHARE_STATUS_VALUE, ///< CITYSIM: Listing status / share price value.
+	WID_CF_FILE_IPO,          ///< CITYSIM: File for an IPO.
+	WID_CF_PAY_DIVIDEND,      ///< CITYSIM: Pay a dividend.
 };
 
 

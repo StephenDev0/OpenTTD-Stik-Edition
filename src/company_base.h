@@ -122,6 +122,14 @@ struct CompanyProperties {
 
 	EngineRenewList engine_renew_list = nullptr; ///< Engine renewals of this company.
 	CompanySettings settings{}; ///< settings specific for each company
+
+	/* CITYSIM: Coffee-Inc-2-style earned financing (Track B). */
+	bool is_public = false; ///< CITYSIM: Whether the company has gone public via an IPO.
+	uint32_t shares_outstanding = 0; ///< CITYSIM: Total number of shares after the IPO.
+	Money share_price = 0; ///< CITYSIM: Price of a single share at/since the IPO.
+	uint8_t public_float_pct = 0; ///< CITYSIM: Percentage of the company owned by public shareholders.
+	uint8_t dividend_policy = 0; ///< CITYSIM: Reserved for automatic dividend policy (percent of profit); 0 = manual only.
+	/* CITYSIM: end. */
 };
 
 struct Company : CompanyProperties, CompanyPool::PoolItem<&_company_pool> {

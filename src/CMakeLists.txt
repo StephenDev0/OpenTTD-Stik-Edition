@@ -186,6 +186,10 @@ add_files(
     fileio.cpp
     fileio_func.h
     fileio_type.h
+    finance_cmd.cpp
+    finance_cmd.h
+    finance_valuation.cpp
+    finance_valuation.h
     fios.cpp
     fios.h
     fios_gui.cpp

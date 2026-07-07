@@ -541,6 +541,14 @@ static const SaveLoad _company_desc[] = {
 	SLE_CONDVAR(CompanyProperties, terraform_limit,       SLE_UINT32,                SLV_156, SL_MAX_VERSION),
 	SLE_CONDVAR(CompanyProperties, clear_limit,           SLE_UINT32,                SLV_156, SL_MAX_VERSION),
 	SLE_CONDVAR(CompanyProperties, tree_limit,            SLE_UINT32,                SLV_175, SL_MAX_VERSION),
+
+	/* CITYSIM: earned financing state (Track B). */
+	SLE_CONDVAR(CompanyProperties, is_public,             SLE_BOOL,   SLV_CITYSIM_FINANCE, SL_MAX_VERSION),
+	SLE_CONDVAR(CompanyProperties, shares_outstanding,    SLE_UINT32, SLV_CITYSIM_FINANCE, SL_MAX_VERSION),
+	SLE_CONDVAR(CompanyProperties, share_price,           SLE_INT64,  SLV_CITYSIM_FINANCE, SL_MAX_VERSION),
+	SLE_CONDVAR(CompanyProperties, public_float_pct,      SLE_UINT8,  SLV_CITYSIM_FINANCE, SL_MAX_VERSION),
+	SLE_CONDVAR(CompanyProperties, dividend_policy,       SLE_UINT8,  SLV_CITYSIM_FINANCE, SL_MAX_VERSION),
+	/* CITYSIM: end. */
 	SLEG_STRUCT("settings", SlCompanySettings),
 	SLEG_CONDSTRUCT("old_ai", SlCompanyOldAI,                                        SL_MIN_VERSION, SLV_107),
 	SLEG_STRUCT("cur_economy", SlCompanyEconomy),

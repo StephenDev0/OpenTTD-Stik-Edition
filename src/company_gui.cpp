@@ -27,6 +27,8 @@
 #include "dropdown_type.h"
 #include "tilehighlight_func.h"
 #include "company_base.h"
+#include "finance_cmd.h" /* CITYSIM */
+#include "finance_valuation.h" /* CITYSIM */
 #include "core/geometry_func.hpp"
 #include "object_type.h"
 #include "rail.h"
@@ -310,12 +312,20 @@ static constexpr std::initializer_list<NWidgetPart> _nested_company_finances_wid
 				NWidget(WWT_TEXT, INVALID_COLOUR), SetStringTip(STR_FINANCES_OWN_FUNDS_TITLE),
 				NWidget(WWT_TEXT, INVALID_COLOUR), SetStringTip(STR_FINANCES_LOAN_TITLE),
 				NWidget(WWT_TEXT, INVALID_COLOUR), SetStringTip(STR_FINANCES_BANK_BALANCE_TITLE), SetPadding(WidgetDimensions::unscaled.vsep_normal, 0, 0, 0),
+				/* CITYSIM: stock market rows. */
+				NWidget(WWT_TEXT, INVALID_COLOUR), SetStringTip(STR_FINANCES_VALUATION_TITLE), SetPadding(WidgetDimensions::unscaled.vsep_normal, 0, 0, 0),
+				NWidget(WWT_TEXT, INVALID_COLOUR), SetStringTip(STR_FINANCES_SHARES_TITLE),
+				/* CITYSIM: end. */
 			EndContainer(),
 			NWidget(NWID_VERTICAL), // Vertical column with bank balance amount, loan amount, and total.
 				NWidget(WWT_TEXT, INVALID_COLOUR, WID_CF_OWN_VALUE), SetAlignment(SA_VERT_CENTER | SA_RIGHT | SA_FORCE),
 				NWidget(WWT_TEXT, INVALID_COLOUR, WID_CF_LOAN_VALUE), SetAlignment(SA_VERT_CENTER | SA_RIGHT | SA_FORCE),
 				NWidget(WWT_EMPTY, INVALID_COLOUR, WID_CF_BALANCE_LINE), SetMinimalSize(0, WidgetDimensions::unscaled.vsep_normal),
 				NWidget(WWT_TEXT, INVALID_COLOUR, WID_CF_BALANCE_VALUE), SetAlignment(SA_VERT_CENTER | SA_RIGHT | SA_FORCE),
+				/* CITYSIM: stock market rows. */
+				NWidget(WWT_TEXT, INVALID_COLOUR, WID_CF_VALUATION_VALUE), SetAlignment(SA_VERT_CENTER | SA_RIGHT | SA_FORCE), SetPadding(WidgetDimensions::unscaled.vsep_normal, 0, 0, 0),
+				NWidget(WWT_TEXT, INVALID_COLOUR, WID_CF_SHARE_STATUS_VALUE), SetAlignment(SA_VERT_CENTER | SA_RIGHT | SA_FORCE),
+				/* CITYSIM: end. */
 			EndContainer(),
 			NWidget(NWID_SELECTION, INVALID_COLOUR, WID_CF_SEL_MAXLOAN),
 				NWidget(NWID_VERTICAL), SetPIPRatio(0, 0, 1), // Max loan information
@@ -330,6 +340,10 @@ static constexpr std::initializer_list<NWidgetPart> _nested_company_finances_wid
 			NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_CF_INCREASE_LOAN), SetFill(1, 0), SetToolTip(STR_FINANCES_BORROW_TOOLTIP),
 			NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_CF_REPAY_LOAN), SetFill(1, 0), SetToolTip(STR_FINANCES_REPAY_TOOLTIP),
 			NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_CF_INFRASTRUCTURE), SetFill(1, 0), SetStringTip(STR_FINANCES_INFRASTRUCTURE_BUTTON, STR_COMPANY_VIEW_INFRASTRUCTURE_TOOLTIP),
+			/* CITYSIM: stock market buttons. */
+			NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_CF_FILE_IPO), SetFill(1, 0), SetStringTip(STR_FINANCES_IPO_BUTTON, STR_FINANCES_IPO_TOOLTIP),
+			NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_CF_PAY_DIVIDEND), SetFill(1, 0), SetToolTip(STR_FINANCES_DIVIDEND_TOOLTIP),
+			/* CITYSIM: end. */
 		EndContainer(),
 	EndContainer(),
 };
@@ -386,6 +400,22 @@ struct CompanyFinancesWindow : Window {
 
 			case WID_CF_REPAY_LOAN:
 				return GetString(STR_FINANCES_REPAY_BUTTON, LOAN_INTERVAL);
+
+			/* CITYSIM: stock market rows and dividend button. */
+			case WID_CF_VALUATION_VALUE: {
+				const Company *c = Company::Get(this->window_number);
+				return GetString(STR_FINANCES_TOTAL_CURRENCY, CalculateIncomeBasedValuation(c));
+			}
+
+			case WID_CF_SHARE_STATUS_VALUE: {
+				const Company *c = Company::Get(this->window_number);
+				if (c->is_public) return GetString(STR_FINANCES_SHARE_STATUS_PUBLIC, c->share_price);
+				return GetString(CheckIpoEligibility(c).IsEligible() ? STR_FINANCES_SHARE_STATUS_ELIGIBLE : STR_FINANCES_SHARE_STATUS_PRIVATE);
+			}
+
+			case WID_CF_PAY_DIVIDEND:
+				return GetString(STR_FINANCES_DIVIDEND_BUTTON, DIVIDEND_INTERVAL);
+			/* CITYSIM: end. */
 
 			default:
 				return this->Window::GetWidgetString(widget, stringid);
@@ -485,6 +515,9 @@ struct CompanyFinancesWindow : Window {
 			const Company *c = Company::Get(company);
 			this->SetWidgetDisabledState(WID_CF_INCREASE_LOAN, c->current_loan >= c->GetMaxLoan()); // Borrow button only shows when there is any more money to loan.
 			this->SetWidgetDisabledState(WID_CF_REPAY_LOAN, company != _local_company || c->current_loan == 0); // Repay button only shows when there is any more money to repay.
+			/* CITYSIM: IPO only once; dividends only for public companies. */
+			this->SetWidgetDisabledState(WID_CF_FILE_IPO, c->is_public);
+			this->SetWidgetDisabledState(WID_CF_PAY_DIVIDEND, !c->is_public);
 		}
 
 		this->DrawWidgets();
@@ -516,6 +549,16 @@ struct CompanyFinancesWindow : Window {
 			case WID_CF_INFRASTRUCTURE: // show infrastructure details
 				ShowCompanyInfrastructure(this->window_number);
 				break;
+
+			/* CITYSIM: stock market buttons. */
+			case WID_CF_FILE_IPO:
+				Command<CMD_FILE_IPO>::Post(STR_ERROR_CAN_T_FILE_IPO, IPO_FLOAT_PCT);
+				break;
+
+			case WID_CF_PAY_DIVIDEND:
+				Command<CMD_ISSUE_DIVIDEND>::Post(STR_ERROR_CAN_T_PAY_DIVIDEND, _ctrl_pressed ? DIVIDEND_INTERVAL * 10 : DIVIDEND_INTERVAL);
+				break;
+			/* CITYSIM: end. */
 		}
 	}
 

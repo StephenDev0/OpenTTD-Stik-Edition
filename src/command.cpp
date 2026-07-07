@@ -30,6 +30,7 @@
 #include "depot_cmd.h"
 #include "economy_cmd.h"
 #include "engine_cmd.h"
+#include "finance_cmd.h" /* CITYSIM */
 #include "goal_cmd.h"
 #include "group_cmd.h"
 #include "industry_cmd.h"

@@ -3977,6 +3977,17 @@ STR_FINANCES_REPAY_BUTTON                                       :{BLACK}Repay {C
 STR_FINANCES_REPAY_TOOLTIP                                      :{BLACK}Repay part of loan. Ctrl+Click to repay as much loan as possible
 STR_FINANCES_INFRASTRUCTURE_BUTTON                              :{BLACK}Infrastructure
 
+# Finances stock market section (CITYSIM)
+STR_FINANCES_VALUATION_TITLE                                    :{WHITE}Market Valuation
+STR_FINANCES_SHARES_TITLE                                       :{WHITE}Listing
+STR_FINANCES_SHARE_STATUS_PUBLIC                                :{BLACK}Public, share price {CURRENCY_LONG}
+STR_FINANCES_SHARE_STATUS_ELIGIBLE                              :{BLACK}Private, eligible for IPO
+STR_FINANCES_SHARE_STATUS_PRIVATE                               :{BLACK}Private, not eligible for IPO
+STR_FINANCES_IPO_BUTTON                                         :{BLACK}File IPO
+STR_FINANCES_IPO_TOOLTIP                                        :{BLACK}Take the company public. Requires an established, profitable company; proceeds are based on the market valuation
+STR_FINANCES_DIVIDEND_BUTTON                                    :{BLACK}Dividend {CURRENCY_LONG}
+STR_FINANCES_DIVIDEND_TOOLTIP                                   :{BLACK}Pay a cash dividend to public shareholders. Ctrl+Click to pay ten times as much
+
 # Company view
 STR_COMPANY_VIEW_CAPTION                                        :{WHITE}{COMPANY} {BLACK}{COMPANY_NUM}
 STR_COMPANY_VIEW_PRESIDENT_MANAGER_TITLE                        :{WHITE}{PRESIDENT_NAME}{}{GOLD}(Manager)
@@ -5084,6 +5095,15 @@ STR_ERROR_INSUFFICIENT_FUNDS                                    :{WHITE}Can't gi
 STR_ERROR_CAN_T_GIVE_MONEY                                      :{WHITE}Can't give away money to this company...
 STR_ERROR_CAN_T_BUY_COMPANY                                     :{WHITE}Can't buy company...
 STR_ERROR_CAN_T_BUILD_COMPANY_HEADQUARTERS                      :{WHITE}Can't build company headquarters...
+
+# Earned financing errors (CITYSIM)
+STR_ERROR_CAN_T_FILE_IPO                                        :{WHITE}Can't file for an IPO...
+STR_ERROR_IPO_ALREADY_PUBLIC                                    :{WHITE}... company is already public
+STR_ERROR_IPO_COMPANY_TOO_YOUNG                                 :{WHITE}... company must be at least 3 years old
+STR_ERROR_IPO_NOT_PROFITABLE                                    :{WHITE}... company needs 4 consecutive profitable quarters
+STR_ERROR_IPO_VALUATION_TOO_LOW                                 :{WHITE}... market valuation is too low
+STR_ERROR_CAN_T_PAY_DIVIDEND                                    :{WHITE}Can't pay dividend...
+STR_ERROR_DIVIDEND_NOT_PUBLIC                                   :{WHITE}... company is not public
 
 # Town related errors
 STR_ERROR_CAN_T_GENERATE_TOWN                                   :{WHITE}Can't build any towns...
