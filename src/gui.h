@@ -36,6 +36,9 @@ Window *ShowBuildDocksScenToolbar();
 /* airport_gui.cpp */
 Window *ShowBuildAirToolbar();
 
+/* citybuild_gui.cpp (CITYSIM) */
+Window *ShowCityBuildToolbar();
+
 /* tgp_gui.cpp */
 void ShowGenerateLandscape();
 void ShowHeightmapLoad();

@@ -43,6 +43,7 @@
 #include "town.h"
 #include "town_kdtree.h"
 #include "townname_func.h"
+#include "citybuild_cmd.h" /* CITYSIM */
 #include "core/random_func.hpp"
 #include "core/backup_type.hpp"
 #include "depot_base.h"
@@ -2804,6 +2805,13 @@ static void BuildTownHouse(Town *t, TileIndex tile, const HouseSpec *hs, HouseID
 	if (size.Any(BUILDING_2_TILES_X)) TriggerHouseAnimation_ConstructionStageChanged(tile + TileDiffXY(1, 0), true);
 	if (size.Any(BUILDING_HAS_4_TILES)) TriggerHouseAnimation_ConstructionStageChanged(tile + TileDiffXY(1, 1), true);
 }
+
+/* CITYSIM: bridge for the player city-building command (see citybuild_cmd.cpp). */
+void BuildPlayerHouse(Town *t, TileIndex tile, const HouseSpec *hs, HouseID house, uint8_t random_bits)
+{
+	BuildTownHouse(t, tile, hs, house, random_bits, false, hs->extra_flags.Test(HouseExtraFlag::BuildingIsProtected));
+}
+/* CITYSIM: end. */
 
 /**
  * Tries to build a house at this tile.

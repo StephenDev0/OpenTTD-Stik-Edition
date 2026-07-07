@@ -483,6 +483,11 @@ STR_MAP_MENU_SIGN_LIST                                          :Sign list
 # Town menu
 STR_TOWN_MENU_TOWN_DIRECTORY                                    :Town directory
 STR_TOWN_MENU_FOUND_TOWN                                        :Found town
+STR_TOWN_MENU_CITY_BUILDING                                     :City building
+
+# City building toolbar (CITYSIM)
+STR_CITYBUILD_TOOLBAR_CAPTION                                   :{WHITE}City Building
+STR_CITYBUILD_TOOLBAR_PLACE_HOUSE_TOOLTIP                       :{BLACK}Place a residential house. Click on a tile near a town to build a house there
 
 # Subsidies menu
 STR_SUBSIDIES_MENU_SUBSIDIES                                    :Subsidies
@@ -5093,6 +5098,7 @@ STR_ERROR_ROAD_WORKS_IN_PROGRESS                                :{WHITE}Road wor
 STR_ERROR_TOWN_CAN_T_DELETE                                     :{WHITE}Can't delete this town...{}{}A station or depot is referring to the town or a town owned tile can't be removed
 STR_ERROR_STATUE_NO_SUITABLE_PLACE                              :{WHITE}... there is no suitable place for a statue in the centre of this town
 STR_ERROR_CAN_T_BUILD_HOUSE                                     :{WHITE}Can't build house...
+STR_ERROR_CITY_NO_SUITABLE_HOUSE                                :{WHITE}... no suitable house type available here
 
 # Industry related errors
 STR_ERROR_TOO_MANY_INDUSTRIES                                   :{WHITE}... too many industries

@@ -476,6 +476,7 @@ enum TownMenuEntries {
 	TME_SHOW_DIRECTORY = 0,
 	TME_SHOW_FOUND_TOWN,
 	TME_SHOW_PLACE_HOUSES,
+	TME_SHOW_CITY_BUILDING, ///< CITYSIM: open the city building toolbar.
 };
 
 static CallBackFunction ToolbarTownClick(Window *w)
@@ -484,6 +485,7 @@ static CallBackFunction ToolbarTownClick(Window *w)
 	list.push_back(MakeDropDownListStringItem(STR_TOWN_MENU_TOWN_DIRECTORY, TME_SHOW_DIRECTORY));
 	if (_settings_game.economy.found_town != TF_FORBIDDEN) list.push_back(MakeDropDownListStringItem(STR_TOWN_MENU_FOUND_TOWN, TME_SHOW_FOUND_TOWN));
 	if (_settings_game.economy.place_houses != PH_FORBIDDEN) list.push_back(MakeDropDownListStringItem(STR_SCENEDIT_TOWN_MENU_PACE_HOUSE, TME_SHOW_PLACE_HOUSES));
+	list.push_back(MakeDropDownListStringItem(STR_TOWN_MENU_CITY_BUILDING, TME_SHOW_CITY_BUILDING)); /* CITYSIM */
 
 	PopupMainToolbarMenu(w, WID_TN_TOWNS, std::move(list), 0);
 
@@ -506,6 +508,7 @@ static CallBackFunction MenuClickTown(int index)
 		case TME_SHOW_PLACE_HOUSES: // Setting could be changed when the dropdown was open
 			if (_settings_game.economy.place_houses != PH_FORBIDDEN) ShowBuildHousePicker(nullptr);
 			break;
+		case TME_SHOW_CITY_BUILDING: ShowCityBuildToolbar(); break; /* CITYSIM */
 	}
 	return CBF_NONE;
 }

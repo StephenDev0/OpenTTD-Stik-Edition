@@ -107,6 +107,9 @@ add_files(
     cheat_func.h
     cheat_gui.cpp
     cheat_type.h
+    citybuild_cmd.cpp
+    citybuild_cmd.h
+    citybuild_gui.cpp
     clear_cmd.cpp
     clear_func.h
     clear_map.h

@@ -85,6 +85,12 @@ enum WindowClass : uint16_t {
 	WC_SCEN_BUILD_TOOLBAR,
 
 	/**
+	 * CITYSIM: City building toolbar; %Window numbers:
+	 *   - 0 = #CityBuildToolbarWidgets
+	 */
+	WC_CITY_BUILD_TOOLBAR,
+
+	/**
 	 * Build trees toolbar; %Window numbers:
 	 *   - 0 = #BuildTreesWidgets
 	 */
