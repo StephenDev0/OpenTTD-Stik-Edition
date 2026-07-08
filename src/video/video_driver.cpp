@@ -190,5 +190,6 @@ void VideoDriver::SleepTillNextTick()
  */
 /* static */ std::string VideoDriver::GetCaption()
 {
-	return fmt::format("OpenTTD: Stik Edition {}", _openttd_revision); /* CITYSIM: rebrand */
+	/* CITYSIM: the fork version string already carries the branding ("Stik 0.1.0 ..."). */
+	return fmt::format("OpenTTD {}", _openttd_revision);
 }

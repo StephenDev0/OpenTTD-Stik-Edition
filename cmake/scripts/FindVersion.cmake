@@ -123,6 +123,13 @@ else()
     set(REV_ISSTABLETAG 0)
 endif()
 
+# CITYSIM: fork version override. The displayed and network version of
+# OpenTTD: Stik Edition is fixed; hash/date/modified state stay git-derived.
+set(REV_VERSION "Stik 0.1.0 (16.0-Beta 1)")
+set(REV_ISTAG 0)
+set(REV_ISSTABLETAG 0)
+# CITYSIM: end.
+
 # Extract REV_YEAR and REV_DATE from REV_ISODATE
 string(SUBSTRING "${REV_ISODATE}" 0 4 REV_YEAR)
 string(SUBSTRING "${REV_ISODATE}" 4 4 REV_DATE)
