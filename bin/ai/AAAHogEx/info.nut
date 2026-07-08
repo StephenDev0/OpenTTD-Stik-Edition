@@ -2,7 +2,7 @@
 
    function GetAuthor()      { return "Rei Ishibashi"; }
    function GetName()        { return "AAAHogEx"; }
-   function GetDescription() { return "AAAHogEx is a highly profitable AI that offers a fun and challenging experience even for experienced players. It supports various types of transportation, including trains, trams, cars, trucks, ships, and airplanes. It is also compatible with most major mods. For a beginner-friendly setup guide, please visit the website below."; }
+   function GetDescription() { return "AAAHogEx is a highly profitable AI that offers a fun and challenging experience even for experienced players. It supports various types of transportation, including trains, trams, cars, trucks, ships, and airplanes. It is also compatible with most major mods.\n\nBundled with OpenTTD: Stik Edition. Modified from the original by Rei Ishibashi (2026) to use the Stik Edition earned-financing features - it takes its company public and pays dividends - while still running unchanged on vanilla OpenTTD."; }
    function GetVersion()     { return 115; } // main.nutも変更必要
    function MinVersionToLoad() { return 105; }
    function GetDate()        { return "2026-03-18"; }

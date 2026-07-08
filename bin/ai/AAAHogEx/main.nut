@@ -760,11 +760,33 @@ class HogeAI extends AIController {
 			}
 			indexPointer = 0;
 			turn ++;
+			CitySimManage(); // CITYSIM: use OpenTTD Stik Edition earned-financing features
 			WaitDays(1);
 			HgLog.Info("}");
 		}
 	}
-	
+
+	// CITYSIM: take the company public and pay dividends using the Stik Edition finance API.
+	// Guarded so the AI still runs unchanged on vanilla OpenTTD (the methods simply won't exist).
+	function CitySimManage() {
+		try {
+			local self = AICompany.COMPANY_SELF;
+			if(AICompany.IsPublic(self)) {
+				return;
+			}
+			// The IPO command enforces the real gates (age, profitable quarters, min valuation);
+			// only bother attempting once the valuation is plausibly high enough.
+			if(AICompany.GetCompanyValuation(self) >= 500000) {
+				if(AICompany.FileIPO()) {
+					HgLog.Info("CitySim: filed IPO, setting a 25% dividend policy");
+					AICompany.SetDividendPolicy(25);
+				}
+			}
+		} catch(e) {
+			// Not running on OpenTTD: Stik Edition; skip the CitySim finance features.
+		}
+	}
+
 	function GetProfitModelName() {
 		if(roiBase) {
 			return "roiBase";
