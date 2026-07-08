@@ -55,6 +55,7 @@
 #include "tree_cmd.h"
 #include "tunnelbridge_cmd.h"
 #include "vehicle_cmd.h"
+#include "venture_cmd.h" /* CITYSIM */
 #include "viewport_cmd.h"
 #include "water_cmd.h"
 #include "waypoint_cmd.h"

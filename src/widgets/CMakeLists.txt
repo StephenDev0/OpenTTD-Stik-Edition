@@ -59,6 +59,7 @@ add_files(
     transparency_widget.h
     tree_widget.h
     vehicle_widget.h
+    venture_widget.h
     viewport_widget.h
     waypoint_widget.h
 )

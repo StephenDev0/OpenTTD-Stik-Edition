@@ -91,6 +91,12 @@ enum WindowClass : uint16_t {
 	WC_CITY_BUILD_TOOLBAR,
 
 	/**
+	 * CITYSIM: Venture capital window; %Window numbers:
+	 *   - 0 = #VentureWidgets
+	 */
+	WC_VENTURE_CAPITAL,
+
+	/**
 	 * Build trees toolbar; %Window numbers:
 	 *   - 0 = #BuildTreesWidgets
 	 */

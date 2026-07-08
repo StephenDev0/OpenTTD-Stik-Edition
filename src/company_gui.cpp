@@ -30,6 +30,7 @@
 #include "company_base.h"
 #include "finance_cmd.h" /* CITYSIM */
 #include "finance_valuation.h" /* CITYSIM */
+#include "venture.h" /* CITYSIM */
 #include "core/geometry_func.hpp"
 #include "object_type.h"
 #include "rail.h"
@@ -346,6 +347,7 @@ static constexpr std::initializer_list<NWidgetPart> _nested_company_finances_wid
 			/* CITYSIM: stock market buttons. */
 			NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_CF_FILE_IPO), SetFill(1, 0), SetStringTip(STR_FINANCES_IPO_BUTTON, STR_FINANCES_IPO_TOOLTIP),
 			NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_CF_PAY_DIVIDEND), SetFill(1, 0), SetToolTip(STR_FINANCES_DIVIDEND_TOOLTIP),
+			NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_CF_VENTURES), SetFill(1, 0), SetStringTip(STR_FINANCES_VENTURES_BUTTON, STR_FINANCES_VENTURES_TOOLTIP),
 			/* CITYSIM: end. */
 		EndContainer(),
 	EndContainer(),
@@ -566,6 +568,10 @@ struct CompanyFinancesWindow : Window {
 
 			case WID_CF_PAY_DIVIDEND:
 				Command<CMD_ISSUE_DIVIDEND>::Post(STR_ERROR_CAN_T_PAY_DIVIDEND, _ctrl_pressed ? DIVIDEND_INTERVAL * 10 : DIVIDEND_INTERVAL);
+				break;
+
+			case WID_CF_VENTURES:
+				ShowVenturesWindow();
 				break;
 
 			case WID_CF_DIVIDEND_POLICY: {

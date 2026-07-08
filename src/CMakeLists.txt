@@ -569,6 +569,11 @@ add_files(
     vehicle_gui_base.h
     vehicle_type.h
     vehiclelist.cpp
+    venture.cpp
+    venture.h
+    venture_cmd.cpp
+    venture_cmd.h
+    venture_gui.cpp
     vehiclelist.h
     vehiclelist_cmd.h
     vehiclelist_func.h

@@ -32,6 +32,7 @@
 #include "town_kdtree.h"
 #include "viewport_kdtree.h"
 #include "newgrf_profiling.h"
+#include "venture.h" /* CITYSIM */
 #include "3rdparty/monocypher/monocypher.h"
 
 #include "safeguards.h"
@@ -159,6 +160,7 @@ void InitializeGame(uint size_x, uint size_y, bool reset_date, bool reset_settin
 	InitializeAnimatedTiles();
 
 	InitializeEconomy();
+	InitializeVentures(); /* CITYSIM */
 
 	ResetObjectToPlace();
 

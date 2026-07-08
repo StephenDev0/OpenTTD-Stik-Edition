@@ -3990,6 +3990,51 @@ STR_FINANCES_IPO_BUTTON                                         :{BLACK}File IPO
 STR_FINANCES_IPO_TOOLTIP                                        :{BLACK}Take the company public. Requires an established, profitable company; proceeds are based on the market valuation
 STR_FINANCES_DIVIDEND_BUTTON                                    :{BLACK}Dividend {CURRENCY_LONG}
 STR_FINANCES_DIVIDEND_TOOLTIP                                   :{BLACK}Pay a cash dividend to public shareholders. Ctrl+Click to pay ten times as much
+STR_FINANCES_VENTURES_BUTTON                                    :{BLACK}Ventures
+STR_FINANCES_VENTURES_TOOLTIP                                   :{BLACK}Invest in private startups before they go public
+
+# Venture capital window (CITYSIM)
+STR_VENTURE_CAPTION                                             :{WHITE}Venture Capital
+STR_VENTURE_LIST_TOOLTIP                                        :{BLACK}Click a startup to select it. Most startups fail, but survivors pay out big on IPO or acquisition
+STR_VENTURE_ROW                                                 :{BLACK}{STRING} {GOLD}{STRING}{BLACK} - {CURRENCY_LONG} - your stake: {NUM}%
+STR_VENTURE_BUY_BUTTON                                          :{BLACK}Invest 1%
+STR_VENTURE_BUY_TOOLTIP                                         :{BLACK}Buy a 1% stake in the selected startup at its current valuation. Ctrl+Click to buy 10%
+STR_VENTURE_SELL_BUTTON                                         :{BLACK}Sell 1%
+STR_VENTURE_SELL_TOOLTIP                                        :{BLACK}Sell a 1% stake in the selected startup at a 30% discount. Ctrl+Click to sell 10%
+STR_VENTURE_STAGE_SEED                                          :Seed
+STR_VENTURE_STAGE_SERIES_A                                      :Series A
+STR_VENTURE_STAGE_SERIES_B                                      :Series B
+STR_VENTURE_STAGE_SERIES_C                                      :Series C
+STR_VENTURE_STATE_FAILED                                        :Bankrupt
+STR_VENTURE_STATE_IPO                                           :Went public!
+STR_VENTURE_STATE_ACQUIRED                                      :Acquired
+STR_VENTURE_STATE_EMPTY                                         :-
+
+# Venture startup names (CITYSIM) - order must match venture.h name pool
+STR_VENTURE_NAME_FIRST                                          :Moonward Launch Co.
+STR_VENTURE_NAME_01                                             :Otter Orbital
+STR_VENTURE_NAME_02                                             :Nebula Freightworks
+STR_VENTURE_NAME_03                                             :AsteroFruit Mining
+STR_VENTURE_NAME_04                                             :Photon Ferries
+STR_VENTURE_NAME_05                                             :Marsward Habitats
+STR_VENTURE_NAME_06                                             :Comet Couriers
+STR_VENTURE_NAME_07                                             :Skyhook Logistics
+STR_VENTURE_NAME_08                                             :Lunar Laundry
+STR_VENTURE_NAME_09                                             :Void Vineyards
+STR_VENTURE_NAME_10                                             :Saturn Sandwich Co.
+STR_VENTURE_NAME_11                                             :Gravity Gardens
+STR_VENTURE_NAME_12                                             :Quantum Kettle Labs
+STR_VENTURE_NAME_13                                             :Cloudberry Computing
+STR_VENTURE_NAME_14                                             :Pigeon Post Drones
+STR_VENTURE_NAME_15                                             :Deep Dish Data
+STR_VENTURE_NAME_16                                             :Sunfarm Fusion
+STR_VENTURE_NAME_17                                             :Robo Barista Labs
+STR_VENTURE_NAME_18                                             :Zeppelin Zero
+STR_VENTURE_NAME_19                                             :Warp & Weft Textiles
+STR_VENTURE_NAME_20                                             :Meteor Metrics
+STR_VENTURE_NAME_21                                             :Rocket Radish Farms
+STR_VENTURE_NAME_22                                             :HyperBore Tunnelling
+STR_VENTURE_NAME_23                                             :Starlit Cargo Lines
 
 # Company view
 STR_COMPANY_VIEW_CAPTION                                        :{WHITE}{COMPANY} {BLACK}{COMPANY_NUM}
@@ -5108,6 +5153,12 @@ STR_ERROR_IPO_VALUATION_TOO_LOW                                 :{WHITE}... mark
 STR_ERROR_CAN_T_PAY_DIVIDEND                                    :{WHITE}Can't pay dividend...
 STR_ERROR_CAN_T_SET_DIVIDEND_POLICY                             :{WHITE}Can't change dividend policy...
 STR_ERROR_DIVIDEND_NOT_PUBLIC                                   :{WHITE}... company is not public
+STR_ERROR_CAN_T_BUY_STAKE                                       :{WHITE}Can't buy stake...
+STR_ERROR_CAN_T_SELL_STAKE                                      :{WHITE}Can't sell stake...
+STR_ERROR_VENTURE_NOT_INVESTABLE                                :{WHITE}... this startup is not investable
+STR_ERROR_VENTURE_STAKE_LIMIT                                   :{WHITE}... a company may own at most 49% of a startup
+STR_ERROR_VENTURE_SOLD_OUT                                      :{WHITE}... no more equity is for sale
+STR_ERROR_VENTURE_NO_STAKE                                      :{WHITE}... you don't own that much of this startup
 
 # Town related errors
 STR_ERROR_CAN_T_GENERATE_TOWN                                   :{WHITE}Can't build any towns...

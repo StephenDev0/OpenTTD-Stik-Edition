@@ -41,6 +41,7 @@
 #include "waypoint_base.h"
 #include "economy_base.h"
 #include "finance_valuation.h" /* CITYSIM */
+#include "venture.h" /* CITYSIM */
 #include "core/pool_func.hpp"
 #include "core/backup_type.hpp"
 #include "core/container_func.hpp"
@@ -689,8 +690,9 @@ static void CompaniesGenStatistics()
 		if (c->block_preview != 0) c->block_preview--;
 	}
 
-	/* CITYSIM: quarterly share price refresh and automatic dividends. */
+	/* CITYSIM: quarterly share price refresh, automatic dividends, venture board. */
 	UpdatePublicCompaniesFinance();
+	UpdateVentures();
 
 	SetWindowDirty(WC_INCOME_GRAPH, 0);
 	SetWindowDirty(WC_OPERATING_PROFIT, 0);

@@ -77,6 +77,7 @@ enum CompanyFinancesWidgets : WidgetID {
 	WID_CF_DIVIDEND_POLICY,   ///< CITYSIM: Automatic dividend policy dropdown.
 	WID_CF_FILE_IPO,          ///< CITYSIM: File for an IPO.
 	WID_CF_PAY_DIVIDEND,      ///< CITYSIM: Pay a dividend.
+	WID_CF_VENTURES,          ///< CITYSIM: Open the venture capital window.
 };
 
 

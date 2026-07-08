@@ -303,6 +303,8 @@ enum Commands : uint8_t {
 	CMD_FILE_IPO,                     ///< CITYSIM: take the company public
 	CMD_ISSUE_DIVIDEND,               ///< CITYSIM: pay a dividend to public shareholders
 	CMD_SET_DIVIDEND_POLICY,          ///< CITYSIM: set the automatic dividend policy
+	CMD_BUY_VENTURE_STAKE,            ///< CITYSIM: buy a stake in a startup
+	CMD_SELL_VENTURE_STAKE,           ///< CITYSIM: sell a stake in a startup
 
 	CMD_ORDER_REFIT,                  ///< change the refit information of an order (for "goto depot" )
 	CMD_CLONE_ORDER,                  ///< clone (and share) an order
