@@ -215,6 +215,7 @@ add_files(
     script_types.hpp
     script_vehicle.hpp
     script_vehiclelist.hpp
+    script_venture.hpp
     script_viewport.hpp
     script_waypoint.hpp
     script_waypointlist.hpp
@@ -286,6 +287,7 @@ add_files(
     script_tunnel.cpp
     script_vehicle.cpp
     script_vehiclelist.cpp
+    script_venture.cpp
     script_viewport.cpp
     script_waypoint.cpp
     script_waypointlist.cpp

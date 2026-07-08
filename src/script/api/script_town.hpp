@@ -483,6 +483,32 @@ public:
 	 * @return The RoadLayout for the town.
 	 */
 	static RoadLayout GetRoadLayout(TownID town_id);
+
+	/** CITYSIM: building zones of a town, Cities-Skylines-style. */
+	enum TownZone {
+		TOWN_ZONE_RESIDENTIAL = 0, ///< Houses with population.
+		TOWN_ZONE_COMMERCIAL = 1,  ///< Shops and offices.
+		TOWN_ZONE_INDUSTRIAL = 2,  ///< Industries.
+	};
+
+	/**
+	 * CITYSIM: Get the current demand of a town for a building zone.
+	 * @param town_id The town to get the demand of.
+	 * @param zone The zone to get the demand for.
+	 * @pre IsValidTown(town_id).
+	 * @return Demand in the range 0 (none) to 100 (desperate), or -1 on error.
+	 */
+	static SQInteger GetZoneDemand(TownID town_id, TownZone zone);
+
+	/**
+	 * CITYSIM: Place a residential or commercial building on a tile near a town.
+	 * Placement requires sufficient demand in that zone of the closest town.
+	 * @param tile The tile to build on.
+	 * @param zone The zone to build (TOWN_ZONE_RESIDENTIAL or TOWN_ZONE_COMMERCIAL).
+	 * @return True if the building was placed.
+	 * @api -game
+	 */
+	static bool PlaceBuilding(TileIndex tile, TownZone zone);
 };
 
 #endif /* SCRIPT_TOWN_HPP */

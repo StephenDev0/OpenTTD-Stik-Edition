@@ -18,6 +18,9 @@
 #include "../../station_base.h"
 #include "../../landscape.h"
 #include "../../town_cmd.h"
+#include "../../townzone.h" /* CITYSIM */
+#include "../../citybuild_cmd.h" /* CITYSIM */
+#include "script_companymode.hpp" /* CITYSIM */
 
 #include "table/strings.h"
 
@@ -397,3 +400,22 @@
 
 	return (ScriptTown::RoadLayout)((TownLayout)::Town::Get(town_id)->layout);
 }
+
+/* CITYSIM: town zone script API. */
+/* static */ SQInteger ScriptTown::GetZoneDemand(TownID town_id, TownZone zone)
+{
+	if (!IsValidTown(town_id)) return -1;
+	if (zone < TOWN_ZONE_RESIDENTIAL || zone > TOWN_ZONE_INDUSTRIAL) return -1;
+
+	return ::GetTownZoneDemand(::Town::Get(town_id), static_cast<::TownZone>(zone));
+}
+
+/* static */ bool ScriptTown::PlaceBuilding(TileIndex tile, TownZone zone)
+{
+	EnforceCompanyModeValid(false);
+	EnforcePrecondition(false, ::IsValidTile(tile));
+	EnforcePrecondition(false, zone == TOWN_ZONE_RESIDENTIAL || zone == TOWN_ZONE_COMMERCIAL);
+
+	return ScriptObject::Command<Commands::PlacePlayerHouse>::Do(tile, static_cast<::TownZone>(zone));
+}
+/* CITYSIM: end. */
