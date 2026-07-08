@@ -36,6 +36,13 @@ if (NOT EMSCRIPTEN)
             COMPONENT language_files
             REGEX "ai/[^\.]+$" EXCLUDE # Ignore subdirs in ai dir
     )
+
+    # CITYSIM: ship the bundled AAAHogEx AI (the generic exclude above skips ai subdirs).
+    install(DIRECTORY
+                    ${CMAKE_SOURCE_DIR}/bin/ai/AAAHogEx
+            DESTINATION ${DATA_DESTINATION_DIR}/ai
+            COMPONENT language_files
+    )
 else()
     install(FILES
                 ${CMAKE_BINARY_DIR}/openttd.js

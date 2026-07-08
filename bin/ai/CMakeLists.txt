@@ -41,3 +41,27 @@ add_custom_target(ai_compat_files
 add_dependencies(openttd
     ai_compat_files
 )
+
+# CITYSIM: bundle the AAAHogEx AI so a strong opponent ships by default.
+file(GLOB AAAHOGEX_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/AAAHogEx/*)
+foreach(AAAHOGEX_SOURCE_FILE IN LISTS AAAHOGEX_SOURCE_FILES)
+    get_filename_component(AAAHOGEX_FILE_NAME "${AAAHOGEX_SOURCE_FILE}" NAME)
+    set(AAAHOGEX_BINARY_FILE "${CMAKE_BINARY_DIR}/ai/AAAHogEx/${AAAHOGEX_FILE_NAME}")
+
+    add_custom_command(OUTPUT ${AAAHOGEX_BINARY_FILE}
+            COMMAND ${CMAKE_COMMAND} -E copy
+                    ${AAAHOGEX_SOURCE_FILE}
+                    ${AAAHOGEX_BINARY_FILE}
+            MAIN_DEPENDENCY ${AAAHOGEX_SOURCE_FILE}
+            COMMENT "Copying ai/AAAHogEx/${AAAHOGEX_FILE_NAME}"
+    )
+    list(APPEND AAAHOGEX_BINARY_FILES ${AAAHOGEX_BINARY_FILE})
+endforeach()
+
+add_custom_target(ai_aaahogex_files
+        DEPENDS ${AAAHOGEX_BINARY_FILES}
+)
+
+add_dependencies(openttd
+    ai_aaahogex_files
+)
