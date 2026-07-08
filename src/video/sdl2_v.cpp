@@ -103,7 +103,7 @@ static bool TouchOnMap(Point p)
 {
 	if (_thd.place_mode != HT_NONE) return false;
 	Window *w = FindWindowFromPt(p.x, p.y);
-	return w != nullptr && w->window_class == WC_MAIN_WINDOW;
+	return w != nullptr && w->window_class == WindowClass::MainWindow;
 }
 
 /** Handle SDL finger events; return true if the event was handled. */

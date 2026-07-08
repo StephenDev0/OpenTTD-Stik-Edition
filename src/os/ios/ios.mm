@@ -95,12 +95,10 @@ void IOSSetSDLWindow(SDL_Window *window)
 #endif /* WITH_SDL2 */
 
 /** Get the iOS version; reuses the macOS entry point so MacOSVersionIsAtLeast keeps working. */
-void GetMacOSVersion(int *return_major, int *return_minor, int *return_bugfix)
+std::tuple<int, int, int> GetMacOSVersion()
 {
 	NSOperatingSystemVersion ver = [ [ NSProcessInfo processInfo ] operatingSystemVersion ];
-	*return_major = (int)ver.majorVersion;
-	*return_minor = (int)ver.minorVersion;
-	*return_bugfix = (int)ver.patchVersion;
+	return {(int)ver.majorVersion, (int)ver.minorVersion, (int)ver.patchVersion};
 }
 
 /** There is no blocking native dialog outside the UIKit run loop; log to the on-device console. */
@@ -146,15 +144,15 @@ std::optional<std::string> GetCurrentLocale(const char *)
 /** Register the (flat) application bundle, which holds the shipped game data, as a search path. */
 void CocoaSetApplicationBundleDir()
 {
-	extern std::array<std::string, NUM_SEARCHPATHS> _searchpaths;
+	extern EnumIndexArray<std::string, Searchpath, Searchpath::End> _searchpaths;
 
 	char tmp[MAXPATHLEN];
 	CFAutoRelease<CFURLRef> url(CFBundleCopyResourcesDirectoryURL(CFBundleGetMainBundle()));
 	if (CFURLGetFileSystemRepresentation(url.get(), true, (unsigned char *)tmp, MAXPATHLEN)) {
-		_searchpaths[SP_APPLICATION_BUNDLE_DIR] = tmp;
-		AppendPathSeparator(_searchpaths[SP_APPLICATION_BUNDLE_DIR]);
+		_searchpaths[Searchpath::ApplicationBundleDir] = tmp;
+		AppendPathSeparator(_searchpaths[Searchpath::ApplicationBundleDir]);
 	} else {
-		_searchpaths[SP_APPLICATION_BUNDLE_DIR].clear();
+		_searchpaths[Searchpath::ApplicationBundleDir].clear();
 	}
 }
 

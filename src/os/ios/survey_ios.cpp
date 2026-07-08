@@ -20,8 +20,7 @@
 
 void SurveyOS(nlohmann::json &json)
 {
-	int ver_maj, ver_min, ver_bug;
-	GetMacOSVersion(&ver_maj, &ver_min, &ver_bug);
+	auto [ver_maj, ver_min, ver_bug] = GetMacOSVersion();
 
 	struct utsname uts{};
 	uname(&uts);
