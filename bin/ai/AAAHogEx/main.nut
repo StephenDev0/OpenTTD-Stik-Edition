@@ -766,24 +766,104 @@ class HogeAI extends AIController {
 		}
 	}
 
-	// CITYSIM: take the company public and pay dividends using the Stik Edition finance API.
-	// Guarded so the AI still runs unchanged on vanilla OpenTTD (the methods simply won't exist).
+	// CITYSIM: use the OpenTTD Stik Edition features: earned financing (IPO +
+	// dividends), venture capital investing and demand-driven city building.
+	// Guarded so the AI still runs unchanged on vanilla OpenTTD (the methods
+	// simply won't exist there and the catch swallows the lookup error).
 	function CitySimManage() {
 		try {
-			local self = AICompany.COMPANY_SELF;
-			if(AICompany.IsPublic(self)) {
-				return;
+			CitySimFinance();
+			CitySimVentures();
+			CitySimCityBuilding();
+		} catch(e) {
+			// Not running on OpenTTD: Stik Edition; skip the CitySim features.
+		}
+	}
+
+	// CITYSIM: take the company public once it qualifies, then share profits.
+	function CitySimFinance() {
+		local self = AICompany.COMPANY_SELF;
+		if(AICompany.IsPublic(self)) return;
+		// The IPO command enforces the real gates (age, profitable quarters,
+		// minimum valuation); only attempt once the valuation looks sufficient.
+		if(AICompany.GetCompanyValuation(self) >= 500000) {
+			if(AICompany.FileIPO()) {
+				HgLog.Info("CitySim: filed IPO, setting a 25% dividend policy");
+				AICompany.SetDividendPolicy(25);
 			}
-			// The IPO command enforces the real gates (age, profitable quarters, min valuation);
-			// only bother attempting once the valuation is plausibly high enough.
-			if(AICompany.GetCompanyValuation(self) >= 500000) {
-				if(AICompany.FileIPO()) {
-					HgLog.Info("CitySim: filed IPO, setting a 25% dividend policy");
-					AICompany.SetDividendPolicy(25);
+		}
+	}
+
+	// CITYSIM: invest spare cash into startups; liquidate them when distressed.
+	function CitySimVentures() {
+		local self = AICompany.COMPANY_SELF;
+		local bank = AICompany.GetBankBalance(self);
+		local loan = AICompany.GetLoanAmount();
+
+		if(bank < 30000 && loan >= AICompany.GetMaxLoanAmount()) {
+			// Distress: turn venture stakes back into working capital.
+			for(local slot = 0; slot < AIVenture.GetVentureCount(); slot++) {
+				local stake = AIVenture.GetStake(slot);
+				if(stake >= 100 && AIVenture.GetState(slot) == AIVenture.VENTURE_STATE_ACTIVE) {
+					if(AIVenture.SellStake(slot, stake)) {
+						HgLog.Info("CitySim: liquidated stake in "+AIVenture.GetName(slot));
+					}
 				}
 			}
-		} catch(e) {
-			// Not running on OpenTTD: Stik Edition; skip the CitySim finance features.
+			return;
+		}
+
+		// Only invest cash that is truly spare: no outstanding loan and a fat buffer.
+		if(loan > 0) return;
+		local spare = bank - 1500000;
+		if(spare <= 0) return;
+		local budget = spare / 5; // risk at most a fifth of the surplus per turn
+
+		for(local slot = 0; slot < AIVenture.GetVentureCount(); slot++) {
+			if(budget <= 0) break;
+			if(AIVenture.GetState(slot) != AIVenture.VENTURE_STATE_ACTIVE) continue;
+			if(AIVenture.GetStake(slot) >= 1000) continue; // diversify: cap 10% per startup
+			local cost = AIVenture.GetValuation(slot) / 100; // price of 1%
+			if(cost <= 0 || cost > budget) continue;
+			if(AIVenture.BuyStake(slot, 100)) {
+				budget -= cost;
+				HgLog.Info("CitySim: bought 1% of "+AIVenture.GetName(slot)+" for "+cost);
+			}
+		}
+	}
+
+	// CITYSIM: grow the towns this company serves. When a town near one of our
+	// stations has high demand for a zone, build there: more houses mean more
+	// passengers and mail for our own routes.
+	function CitySimCityBuilding() {
+		if(turn % 4 != 0) return; // not every turn; construction is a side hustle
+		local self = AICompany.COMPANY_SELF;
+		if(AICompany.GetBankBalance(self) < 500000 || AICompany.GetLoanAmount() > 0) return;
+
+		local placed = 0;
+		local stationList = AIStationList(AIStation.STATION_ANY);
+		foreach(station,_ in stationList) {
+			if(placed >= 2) break; // at most a couple of buildings per pass
+			local base = AIStation.GetLocation(station);
+			local town = AITile.GetClosestTown(base);
+			if(!AITown.IsValidTown(town)) continue;
+
+			foreach(zone in [AITown.TOWN_ZONE_RESIDENTIAL, AITown.TOWN_ZONE_COMMERCIAL]) {
+				if(placed >= 2) break;
+				if(AITown.GetZoneDemand(town, zone) < 40) continue;
+
+				local tiles = AITileList();
+				tiles.AddRectangle(base - AIMap.GetTileIndex(5, 5), base + AIMap.GetTileIndex(5, 5));
+				tiles.Valuate(AITile.IsBuildable);
+				tiles.RemoveValue(0);
+				foreach(tile,_ in tiles) {
+					if(AITown.PlaceBuilding(tile, zone)) {
+						HgLog.Info("CitySim: built in "+AITown.GetName(town)+" (zone "+zone+", demand "+AITown.GetZoneDemand(town, zone)+")");
+						placed++;
+						break;
+					}
+				}
+			}
 		}
 	}
 
