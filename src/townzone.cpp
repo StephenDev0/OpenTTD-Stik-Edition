@@ -24,13 +24,14 @@
 
 /**
  * Whether a house type counts as commercial (shops and offices).
- * Classified by goods acceptance: in the base sets shops/offices are the
- * house types that accept goods.
+ * Classified by goods acceptance AMOUNT: every original house lists goods as
+ * an accepted label, but only shops/offices accept meaningful amounts (4-6),
+ * while homes accept 0-1.
  */
 bool IsCommercialHouseSpec(const HouseSpec &hs)
 {
-	for (const CargoLabel &label : hs.accepts_cargo_label) {
-		if (label == CT_GOODS) return true;
+	for (uint i = 0; i < HOUSE_ORIGINAL_NUM_ACCEPTS; i++) {
+		if (hs.accepts_cargo_label[i] == CT_GOODS && hs.cargo_acceptance[i] >= 3) return true;
 	}
 	return false;
 }
