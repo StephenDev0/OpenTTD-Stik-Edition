@@ -2088,7 +2088,7 @@ CommandCost CmdBuildIndustry(DoCommandFlags flags, TileIndex tile, IndustryType 
 	size_t num_layouts = indspec->layouts.size();
 	CommandCost ret = CommandCost(STR_ERROR_SITE_UNSUITABLE);
 	const bool deity_prospect = _current_company == OWNER_DEITY && !fund;
-	if (_game_mode != GM_EDITOR && _current_company != OWNER_DEITY && tile != TileIndex{} &&
+	if (_game_mode != GameMode::Editor && _current_company != OWNER_DEITY && tile != TileIndex{} &&
 			GetTownZoneDemand(ClosestTownFromTile(tile, UINT_MAX), TownZone::Industrial) < TOWNZONE_PLACE_THRESHOLD) {
 		return CommandCost(STR_ERROR_ZONE_NO_DEMAND);
 	}

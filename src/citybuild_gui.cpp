@@ -86,9 +86,9 @@ struct CityBuildToolbarWindow : Window {
 	 */
 	static EventState CityBuildToolbarGlobalHotkeys(int hotkey)
 	{
-		if (_game_mode != GM_NORMAL) return ES_NOT_HANDLED;
+		if (_game_mode != GameMode::Normal) return EventState::NotHandled;
 		Window *w = ShowCityBuildToolbar();
-		if (w == nullptr) return ES_NOT_HANDLED;
+		if (w == nullptr) return EventState::NotHandled;
 		return w->OnHotkey(hotkey);
 	}
 
@@ -115,7 +115,7 @@ static constexpr std::initializer_list<NWidgetPart> _nested_citybuild_toolbar_wi
 };
 
 static WindowDesc _citybuild_toolbar_desc(
-	WDP_ALIGN_TOOLBAR, "toolbar_citybuild", 0, 0,
+	WindowPosition::AlignToolbar, "toolbar_citybuild", 0, 0,
 	WindowClass::CityBuildToolbar, WindowClass::None,
 	WindowDefaultFlag::Construction,
 	_nested_citybuild_toolbar_widgets,
