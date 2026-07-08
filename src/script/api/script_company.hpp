@@ -293,6 +293,54 @@ public:
 	static bool ChangeBankBalance(ScriptCompany::CompanyID company, Money delta, ExpensesType expenses_type, TileIndex tile);
 
 	/**
+	 * CITYSIM: Get the income-based market valuation of a company.
+	 * This excludes held cash, loans and property and is derived purely from the
+	 * quarterly income history. It is the value used to price an IPO.
+	 * @param company The company to get the valuation of.
+	 * @pre ResolveCompanyID(company) != COMPANY_INVALID.
+	 * @return The income-based valuation, or -1 for an invalid company.
+	 * @api ai
+	 */
+	static Money GetCompanyValuation(ScriptCompany::CompanyID company);
+
+	/**
+	 * CITYSIM: Check whether a company has gone public via an IPO.
+	 * @param company The company to check.
+	 * @pre ResolveCompanyID(company) != COMPANY_INVALID.
+	 * @return True if the company is public.
+	 * @api ai
+	 */
+	static bool IsPublic(ScriptCompany::CompanyID company);
+
+	/**
+	 * CITYSIM: Take your own company public through an initial public offering.
+	 * Gated on company age, consecutive profitable quarters and a minimum
+	 * valuation; on success it injects cash priced off the valuation.
+	 * @return True if the IPO was filed.
+	 * @api ai
+	 */
+	static bool FileIPO();
+
+	/**
+	 * CITYSIM: Pay a one-off cash dividend to your company's public shareholders.
+	 * @param amount The total amount to distribute.
+	 * @pre amount > 0.
+	 * @return True if the dividend was paid.
+	 * @api ai
+	 */
+	static bool IssueDividend(Money amount);
+
+	/**
+	 * CITYSIM: Set your company's automatic dividend policy: the percentage of
+	 * each quarter's operating profit paid to shareholders (0 disables).
+	 * @param percent The percentage of quarterly profit to pay out (0..100).
+	 * @pre percent <= 100.
+	 * @return True if the policy was set.
+	 * @api ai
+	 */
+	static bool SetDividendPolicy(SQInteger percent);
+
+	/**
 	 * Get the income of the company in the given economy-quarter.
 	 * Note that this function only considers recurring income from vehicles;
 	 * it does not include one-time income from selling stuff.

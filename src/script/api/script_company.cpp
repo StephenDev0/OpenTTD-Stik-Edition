@@ -17,6 +17,8 @@
 #include "../../economy_func.h"
 #include "../../object_type.h"
 #include "../../strings_func.h"
+#include "../../finance_cmd.h" /* CITYSIM */
+#include "../../finance_valuation.h" /* CITYSIM */
 #include "../../tile_map.h"
 #include "../../string_func.h"
 #include "../../settings_func.h"
@@ -205,6 +207,44 @@
 
 	return GetAvailableMoney(ScriptCompany::FromScriptCompanyID(company));
 }
+
+/* CITYSIM: earned-financing script API. */
+/* static */ Money ScriptCompany::GetCompanyValuation(ScriptCompany::CompanyID company)
+{
+	company = ResolveCompanyID(company);
+	if (company == ScriptCompany::COMPANY_INVALID) return -1;
+
+	return CalculateIncomeBasedValuation(::Company::Get(ScriptCompany::FromScriptCompanyID(company)));
+}
+
+/* static */ bool ScriptCompany::IsPublic(ScriptCompany::CompanyID company)
+{
+	company = ResolveCompanyID(company);
+	if (company == ScriptCompany::COMPANY_INVALID) return false;
+
+	return ::Company::Get(ScriptCompany::FromScriptCompanyID(company))->is_public;
+}
+
+/* static */ bool ScriptCompany::FileIPO()
+{
+	EnforceCompanyModeValid(false);
+	return ScriptObject::Command<Commands::FileIpo>::Do(IPO_FLOAT_PCT);
+}
+
+/* static */ bool ScriptCompany::IssueDividend(Money amount)
+{
+	EnforceCompanyModeValid(false);
+	EnforcePrecondition(false, amount > 0);
+	return ScriptObject::Command<Commands::IssueDividend>::Do(amount);
+}
+
+/* static */ bool ScriptCompany::SetDividendPolicy(SQInteger percent)
+{
+	EnforceCompanyModeValid(false);
+	EnforcePrecondition(false, percent >= 0 && percent <= 100);
+	return ScriptObject::Command<Commands::SetDividendPolicy>::Do(static_cast<uint8_t>(percent));
+}
+/* CITYSIM: end. */
 
 /* static */ Money ScriptCompany::GetLoanAmount()
 {
