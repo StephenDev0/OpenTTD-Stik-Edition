@@ -266,10 +266,16 @@ struct MainWindow : Window
 			}
 			int off_x = (this->width - name_width) / 2;
 
+			uint logo_height = 0;
 			for (const SpriteID &sprite : title_sprites) {
 				DrawSprite(sprite, PAL_NONE, off_x, ScaleGUITrad(50));
 				off_x += GetSpriteSize(sprite).width + letter_spacing;
+				logo_height = std::max(logo_height, GetSpriteSize(sprite).height);
 			}
+
+			/* CITYSIM: fork subtitle under the logo. */
+			int subtitle_y = ScaleGUITrad(50) + static_cast<int>(logo_height) + ScaleGUITrad(8);
+			DrawString(0, this->width - 1, subtitle_y, STR_INTRO_STIK_EDITION, TC_FROMSTRING, SA_HOR_CENTER, false, FS_LARGE);
 
 			int text_y = this->height - GetCharacterHeight(FS_NORMAL) * 2;
 			DrawString(0, this->width - 1, text_y, STR_INTRO_VERSION, TC_WHITE, SA_CENTER);

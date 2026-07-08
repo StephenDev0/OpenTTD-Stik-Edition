@@ -2240,6 +2240,7 @@ STR_VIDEO_DRIVER_ERROR_HARDWARE_ACCELERATION_CRASH              :{WHITE}... GPU 
 
 # Intro window
 STR_INTRO_CAPTION                                               :{WHITE}OpenTTD: Stik Edition
+STR_INTRO_STIK_EDITION                                          :{YELLOW}Stik Edition
 STR_INTRO_VERSION                                               :OpenTTD {REV}
 
 STR_INTRO_NEW_GAME                                              :{BLACK}New Game
