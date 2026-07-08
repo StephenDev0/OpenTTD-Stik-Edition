@@ -536,6 +536,9 @@ add_files(
     town_kdtree.h
     town_map.h
     town_type.h
+    townzone.cpp
+    townzone.h
+    townzone_gui.cpp
     townname.cpp
     townname_func.h
     townname_type.h

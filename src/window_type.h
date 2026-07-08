@@ -97,6 +97,12 @@ enum WindowClass : uint16_t {
 	WC_VENTURE_CAPITAL,
 
 	/**
+	 * CITYSIM: Town zone demand window; %Window numbers:
+	 *   - #TownID = #TownZoneWidgets
+	 */
+	WC_TOWN_ZONES,
+
+	/**
 	 * Build trees toolbar; %Window numbers:
 	 *   - 0 = #BuildTreesWidgets
 	 */

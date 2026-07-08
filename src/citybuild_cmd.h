@@ -11,12 +11,13 @@
 #define CITYBUILD_CMD_H
 
 #include "command_type.h"
+#include "townzone.h"
 
 struct Town;
 struct HouseSpec;
 using HouseID = uint16_t;
 
-CommandCost CmdPlacePlayerHouse(DoCommandFlags flags, TileIndex tile);
+CommandCost CmdPlacePlayerHouse(DoCommandFlags flags, TileIndex tile, TownZone zone);
 
 DEF_CMD_TRAIT(CMD_PLACE_PLAYER_HOUSE, CmdPlacePlayerHouse, {}, CommandType::LandscapeConstruction)
 

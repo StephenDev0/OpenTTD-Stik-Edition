@@ -5,16 +5,15 @@
  * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <https://www.gnu.org/licenses/old-licenses/gpl-2.0>.
  */
 
-/** @file citybuild_widget.h Types related to the city building widgets (CITYSIM fork feature). */
+/** @file townzone_widget.h Types related to the town zones widgets (CITYSIM fork feature). */
 
-#ifndef WIDGETS_CITYBUILD_WIDGET_H
-#define WIDGETS_CITYBUILD_WIDGET_H
+#ifndef WIDGETS_TOWNZONE_WIDGET_H
+#define WIDGETS_TOWNZONE_WIDGET_H
 
-/** Widgets of the #CityBuildToolbarWindow class. */
-enum CityBuildToolbarWidgets : WidgetID {
-	WID_CBT_PLACE_HOUSE,      ///< Place residential building button.
-	WID_CBT_PLACE_COMMERCIAL, ///< Place commercial building button.
-	WID_CBT_FUND_INDUSTRY,    ///< Open the fund-new-industry window.
+/** Widgets of the #TownZonesWindow class. */
+enum TownZoneWidgets : WidgetID {
+	WID_TZ_CAPTION, ///< Caption showing the town name.
+	WID_TZ_BARS,    ///< Panel with the three demand bars.
 };
 
-#endif /* WIDGETS_CITYBUILD_WIDGET_H */
+#endif /* WIDGETS_TOWNZONE_WIDGET_H */

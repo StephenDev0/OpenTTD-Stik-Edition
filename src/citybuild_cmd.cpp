@@ -17,6 +17,7 @@
 #include "slope_func.h"
 #include "bridge_map.h"
 #include "town.h"
+#include "townzone.h"
 #include "citybuild_cmd.h"
 #include "timer/timer_game_calendar.h"
 
@@ -28,17 +29,18 @@
  * Pick the house type to build for the player place-house command.
  *
  * The choice must be identical in the test and execute run of the command and
- * on all clients, so this uses no random numbers: among all 1x1 residential
- * houses valid for the tile's climate, town zone, year and slope, the one
- * with the highest NewGRF appearance probability (ties broken by lowest
+ * on all clients, so this uses no random numbers: among all 1x1 houses of the
+ * requested zone valid for the tile's climate, town zone, year and slope, the
+ * one with the highest NewGRF appearance probability (ties broken by lowest
  * HouseID) is selected.
  *
  * @param t The town the house will belong to.
  * @param tile The tile to build on.
  * @param slope The slope of that tile.
+ * @param zone Whether to pick a residential or commercial building.
  * @return The selected house type, or #INVALID_HOUSE_ID if none is suitable.
  */
-static HouseID SelectPlayerHouse(const Town *t, TileIndex tile, Slope slope)
+static HouseID SelectPlayerHouse(const Town *t, TileIndex tile, Slope slope, TownZone zone)
 {
 	/* Compute the zone requirements like TryBuildTownHouse does. */
 	HouseZones zones{GetTownRadiusGroup(t, tile)};
@@ -56,10 +58,10 @@ static HouseID SelectPlayerHouse(const Town *t, TileIndex tile, Slope slope)
 		if (!hs.enabled || hs.grf_prop.override_id != INVALID_HOUSE_ID) continue;
 		if (!hs.building_availability.All(zones)) continue;
 
-		/* Residential 1x1 houses only. */
+		/* 1x1 houses of the requested zone only. */
 		if (!hs.building_flags.Test(BuildingFlag::Size1x1)) continue;
 		if (hs.building_flags.Any({BuildingFlag::IsChurch, BuildingFlag::IsStadium})) continue;
-		if (hs.population == 0) continue;
+		if (zone == TownZone::Commercial ? !IsCommercialHouseSpec(hs) : !IsResidentialHouseSpec(hs)) continue;
 
 		if (hs.extra_flags.Test(HouseExtraFlag::BuildingIsHistorical)) continue;
 		if (TimerGameCalendar::year < hs.min_year || TimerGameCalendar::year > hs.max_year) continue;
@@ -82,15 +84,18 @@ static HouseID SelectPlayerHouse(const Town *t, TileIndex tile, Slope slope)
 }
 
 /**
- * Place a single residential house as a company (city building).
+ * Place a single residential or commercial building as a company (city building).
+ * Placement requires sufficient demand in the target zone of the town.
  * Tile validation mirrors CmdPlaceHouse; construction reuses the town house
  * construction path via BuildPlayerHouse.
  * @param flags Type of operation.
  * @param tile Tile on which to place the house.
+ * @param zone Zone to build in (residential or commercial).
  * @return The cost of clearing the tile, or an error.
  */
-CommandCost CmdPlacePlayerHouse(DoCommandFlags flags, TileIndex tile)
+CommandCost CmdPlacePlayerHouse(DoCommandFlags flags, TileIndex tile, TownZone zone)
 {
+	if (zone != TownZone::Residential && zone != TownZone::Commercial) return CMD_ERROR;
 	if (Town::GetNumItems() == 0) return CommandCost(STR_ERROR_MUST_FOUND_TOWN_FIRST);
 
 	Slope slope = GetTileSlope(tile);
@@ -101,7 +106,9 @@ CommandCost CmdPlacePlayerHouse(DoCommandFlags flags, TileIndex tile)
 	if (!cost.Succeeded()) return cost;
 
 	Town *t = ClosestTownFromTile(tile, UINT_MAX);
-	HouseID house = SelectPlayerHouse(t, tile, slope);
+	if (GetTownZoneDemand(t, zone) < TOWNZONE_PLACE_THRESHOLD) return CommandCost(STR_ERROR_ZONE_NO_DEMAND);
+
+	HouseID house = SelectPlayerHouse(t, tile, slope, zone);
 	if (house == INVALID_HOUSE_ID) return CommandCost(STR_ERROR_CITY_NO_SUITABLE_HOUSE);
 
 	if (flags.Test(DoCommandFlag::Execute)) {

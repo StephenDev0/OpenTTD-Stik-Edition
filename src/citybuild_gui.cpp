@@ -28,6 +28,8 @@
 
 /** Toolbar window for player-driven city building. */
 struct CityBuildToolbarWindow : Window {
+	WidgetID last_clicked_widget = INVALID_WIDGET; ///< Placement button that armed the current tool.
+
 	CityBuildToolbarWindow(WindowDesc &desc, WindowNumber window_number) : Window(desc)
 	{
 		this->InitNested(window_number);
@@ -37,7 +39,12 @@ struct CityBuildToolbarWindow : Window {
 	{
 		switch (widget) {
 			case WID_CBT_PLACE_HOUSE:
-				HandlePlacePushButton(this, WID_CBT_PLACE_HOUSE, SPR_CURSOR_TOWN, HT_RECT);
+			case WID_CBT_PLACE_COMMERCIAL:
+				if (HandlePlacePushButton(this, widget, SPR_CURSOR_TOWN, HT_RECT)) this->last_clicked_widget = widget;
+				break;
+
+			case WID_CBT_FUND_INDUSTRY:
+				ShowBuildIndustryWindow();
 				break;
 
 			default: break;
@@ -46,7 +53,8 @@ struct CityBuildToolbarWindow : Window {
 
 	void OnPlaceObject([[maybe_unused]] Point pt, TileIndex tile) override
 	{
-		Command<CMD_PLACE_PLAYER_HOUSE>::Post(STR_ERROR_CAN_T_BUILD_HOUSE, CcPlaySound_CONSTRUCTION_OTHER, tile);
+		TownZone zone = (this->last_clicked_widget == WID_CBT_PLACE_COMMERCIAL) ? TownZone::Commercial : TownZone::Residential;
+		Command<CMD_PLACE_PLAYER_HOUSE>::Post(STR_ERROR_CAN_T_BUILD_HOUSE, CcPlaySound_CONSTRUCTION_OTHER, tile, zone);
 	}
 
 	void OnPlaceObjectAbort() override
@@ -69,6 +77,8 @@ struct CityBuildToolbarWindow : Window {
 
 	static inline HotkeyList hotkeys{"citybuildtoolbar", {
 		Hotkey('1', "place_house", WID_CBT_PLACE_HOUSE),
+		Hotkey('2', "place_commercial", WID_CBT_PLACE_COMMERCIAL),
+		Hotkey('3', "fund_industry", WID_CBT_FUND_INDUSTRY),
 	}, CityBuildToolbarGlobalHotkeys};
 };
 
@@ -81,6 +91,8 @@ static constexpr std::initializer_list<NWidgetPart> _nested_citybuild_toolbar_wi
 	EndContainer(),
 	NWidget(NWID_HORIZONTAL_LTR),
 		NWidget(WWT_IMGBTN, COLOUR_DARK_GREEN, WID_CBT_PLACE_HOUSE), SetToolbarMinimalSize(1), SetFill(0, 1), SetSpriteTip(SPR_IMG_TOWN, STR_CITYBUILD_TOOLBAR_PLACE_HOUSE_TOOLTIP),
+		NWidget(WWT_IMGBTN, COLOUR_DARK_GREEN, WID_CBT_PLACE_COMMERCIAL), SetToolbarMinimalSize(1), SetFill(0, 1), SetSpriteTip(SPR_IMG_COMPANY_GENERAL, STR_CITYBUILD_TOOLBAR_PLACE_COMMERCIAL_TOOLTIP),
+		NWidget(WWT_IMGBTN, COLOUR_DARK_GREEN, WID_CBT_FUND_INDUSTRY), SetToolbarMinimalSize(1), SetFill(0, 1), SetSpriteTip(SPR_IMG_INDUSTRY, STR_CITYBUILD_TOOLBAR_FUND_INDUSTRY_TOOLTIP),
 	EndContainer(),
 };
 

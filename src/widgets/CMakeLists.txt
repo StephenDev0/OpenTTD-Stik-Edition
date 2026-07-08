@@ -56,6 +56,7 @@ add_files(
     timetable_widget.h
     toolbar_widget.h
     town_widget.h
+    townzone_widget.h
     transparency_widget.h
     tree_widget.h
     vehicle_widget.h
