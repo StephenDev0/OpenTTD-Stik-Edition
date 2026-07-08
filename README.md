@@ -1,4 +1,21 @@
-# OpenTTD
+# OpenTTD: Stik Edition
+
+OpenTTD is a business simulation game where you run a transport company, starting in 1950 with nothing but a bank loan. You build the infrastructure yourself: lay railway track, signals, and stations; pave roads and bus stops; construct airports, docks, and canals. Then you buy vehicles, set up routes, and earn money moving passengers and cargo where they need to go.
+
+The world is alive around you. Towns grow on their own and demand services. Coal mines, farms, forests, factories, and dozens of other industries produce cargo that wants transporting, and many feed into each other: coal goes to power stations, livestock and grain to factories, goods from factories back to towns. Finding profitable chains and building efficient networks around them is the heart of the game.
+
+Time passes, and the game evolves with it. New engines, trucks, planes, and ships are introduced over the decades, from steam locomotives to maglev trains. Vehicles age and break down, towns judge you by how well you serve them, and rival companies (human or AI) race you to the best routes. A game can span more than a century, and a well-run network becomes a sprawling, satisfying machine.
+
+**Stik Edition** is a fork of OpenTTD that adds city building, deep company finance, and venture capital, inspired by Cities: Skylines and Coffee Inc 2. In regular OpenTTD you can only watch towns grow and only ever finance your company with bank loans. Stik Edition puts both in your hands:
+
+- **City Building**: place residential and commercial buildings yourself with the City Building toolbar, guided by live per-town demand bars for Residential, Commercial, and Industrial zones. Growing a town means more passengers and mail for your own routes
+- **Company Finance**: your company has a real market valuation based on its profits. Take it public with an IPO once you qualify, watch your share price move each quarter, and pay dividends to your shareholders
+- **Venture Capital**: invest in 12 fictional startups through Seed to Series C funding rounds. Most go bankrupt, but survivors pay out 3x on IPO or a 30% acquisition premium
+- **A real AI opponent**: AAAHogEx comes bundled and plays with all the new features too, going public, paying dividends, investing in startups, and building up the towns it serves
+
+See [STIK-EDITION.md](STIK-EDITION.md) for the full feature overview. Your existing OpenTTD savegames load right in.
+
+The rest of this README is the standard OpenTTD documentation.
 
 ## Table of contents
 
