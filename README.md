@@ -1,4 +1,15 @@
-# OpenTTD
+# OpenTTD: Stik Edition
+
+## A note from the author
+
+I made this fork pretty much for myself: I love OpenTTD and just wanted something new to play, so I added the things I always wished it had (city building, IPOs, venture capital). See [STIK-EDITION.md](STIK-EDITION.md) for what's new.
+
+Two things worth being upfront about:
+
+- Yes, I used AI to help build this. The design ideas are mine, but a lot of the code was written with AI assistance.
+- Yes, this fork will have bugs. It's a hobby project by one person, not a polished release. Vanilla OpenTTD is rock solid; this is me having fun on top of it. If something breaks, feel free to open an issue, but temper your expectations accordingly.
+
+If that sounds fine to you, enjoy!
 
 ## Table of contents
 
