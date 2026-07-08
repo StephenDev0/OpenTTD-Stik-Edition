@@ -25,8 +25,22 @@ enum class TownZone : uint8_t {
 /** Minimum demand (0..100) required to place a building in a zone. */
 static constexpr uint TOWNZONE_PLACE_THRESHOLD = 20;
 
+/** Live details used to explain a town's zone demand. */
+struct TownZoneDemandDetails {
+	uint residential_buildings = 0; ///< Residential buildings already committed.
+	uint commercial_buildings = 0; ///< Commercial buildings already committed.
+	uint industries = 0; ///< Industries attached to the town.
+	uint population = 0; ///< Current completed population.
+	uint pending_population = 0; ///< Population from residential buildings still under construction.
+	uint jobs = 0; ///< Approximate jobs created by shops/offices and industries.
+	uint demand = 0; ///< Demand in the range 0..100.
+};
+
 bool IsCommercialHouseSpec(const HouseSpec &hs);
 bool IsResidentialHouseSpec(const HouseSpec &hs);
+StringID GetTownZoneLabel(TownZone zone);
+Money GetTownZoneBuildCost(TownZone zone);
+TownZoneDemandDetails GetTownZoneDemandDetails(const Town *t, TownZone zone);
 uint GetTownZoneDemand(const Town *t, TownZone zone);
 
 void ShowTownZonesWindow(TownID town);

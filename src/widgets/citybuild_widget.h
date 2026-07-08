@@ -15,6 +15,7 @@ enum CityBuildToolbarWidgets : WidgetID {
 	WID_CBT_PLACE_HOUSE,      ///< Place residential building button.
 	WID_CBT_PLACE_COMMERCIAL, ///< Place commercial building button.
 	WID_CBT_FUND_INDUSTRY,    ///< Open the fund-new-industry window.
+	WID_CBT_STATUS,           ///< Status/help panel.
 };
 
 #endif /* WIDGETS_CITYBUILD_WIDGET_H */

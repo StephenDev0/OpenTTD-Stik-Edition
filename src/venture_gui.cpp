@@ -44,6 +44,11 @@ struct VenturesWindow : Window {
 
 	void UpdateWidgetSize(WidgetID widget, Dimension &size, [[maybe_unused]] const Dimension &padding, [[maybe_unused]] Dimension &fill, [[maybe_unused]] Dimension &resize) override
 	{
+		if (widget == WID_VC_DETAILS) {
+			size.width = std::max(size.width, GetStringBoundingBox(GetString(STR_VENTURE_DETAIL_ACTIVE, STR_VENTURE_NAME_FIRST, uint16_t{100}, Money{100000}, Money{100000}, Money{100000}, uint8_t{1}, uint8_t{2})).width + WidgetDimensions::scaled.framerect.Horizontal());
+			size.height = GetCharacterHeight(FS_NORMAL) * 3 + WidgetDimensions::scaled.framerect.Vertical();
+			return;
+		}
 		if (widget != WID_VC_LIST) return;
 
 		Dimension d = {0, 0};
@@ -56,6 +61,26 @@ struct VenturesWindow : Window {
 
 	void DrawWidget(const Rect &r, WidgetID widget) const override
 	{
+		if (widget == WID_VC_DETAILS) {
+			Rect ir = r.Shrink(WidgetDimensions::scaled.framerect);
+			if (this->selected < 0 || !Company::IsValidID(_local_company)) {
+				DrawString(ir, STR_VENTURE_DETAIL_NONE);
+				return;
+			}
+
+			const Venture &v = _ventures[this->selected];
+			uint16_t own_bp = v.stakes[_local_company.base()];
+			Money stake_value = GetVentureStakeValue(v, own_bp);
+			Money sell_value = v.state == VentureState::Active ? GetVentureSellValue(v, own_bp) : Money{0};
+			Money trade_sell_value = v.state == VentureState::Active ? GetVentureSellValue(v, VENTURE_TRADE_UNIT_BP) : Money{0};
+			Money cost_basis = v.cost_basis[_local_company.base()];
+			DrawString(ir.left, ir.right, ir.top, GetString(STR_VENTURE_DETAIL_ACTIVE, GetVentureNameString(v), GetTotalVentureStakeBp(v) / 100, stake_value, sell_value, cost_basis, v.quarters_in_stage, uint8_t{2}));
+			ir.top += GetCharacterHeight(FS_NORMAL);
+			DrawString(ir.left, ir.right, ir.top, GetString(STR_VENTURE_DETAIL_LIMITS, VENTURE_MAX_COMPANY_STAKE_BP / 100, VENTURE_MAX_TOTAL_STAKE_BP / 100, VENTURE_SELL_PCT));
+			ir.top += GetCharacterHeight(FS_NORMAL);
+			DrawString(ir.left, ir.right, ir.top, GetString(STR_VENTURE_DETAIL_TRADE, GetVentureStakeValue(v, VENTURE_TRADE_UNIT_BP), trade_sell_value));
+			return;
+		}
 		if (widget != WID_VC_LIST) return;
 
 		Rect ir = r.Shrink(WidgetDimensions::scaled.framerect);
@@ -118,6 +143,7 @@ static constexpr std::initializer_list<NWidgetPart> _nested_ventures_widgets = {
 		NWidget(WWT_STICKYBOX, COLOUR_BROWN),
 	EndContainer(),
 	NWidget(WWT_PANEL, COLOUR_BROWN, WID_VC_LIST), SetToolTip(STR_VENTURE_LIST_TOOLTIP), EndContainer(),
+	NWidget(WWT_PANEL, COLOUR_BROWN, WID_VC_DETAILS), EndContainer(),
 	NWidget(NWID_HORIZONTAL, NWidContainerFlag::EqualSize),
 		NWidget(WWT_PUSHTXTBTN, COLOUR_BROWN, WID_VC_BUY), SetFill(1, 0), SetStringTip(STR_VENTURE_BUY_BUTTON, STR_VENTURE_BUY_TOOLTIP),
 		NWidget(WWT_PUSHTXTBTN, COLOUR_BROWN, WID_VC_SELL), SetFill(1, 0), SetStringTip(STR_VENTURE_SELL_BUTTON, STR_VENTURE_SELL_TOOLTIP),

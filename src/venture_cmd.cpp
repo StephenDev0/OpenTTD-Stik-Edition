@@ -51,6 +51,7 @@ CommandCost CmdBuyVentureStake(DoCommandFlags flags, uint8_t slot, uint16_t bp)
 	if (flags.Test(DoCommandFlag::Execute)) {
 		c->money -= cost;
 		v.stakes[c->index.base()] = held + bp;
+		v.cost_basis[c->index.base()] += cost;
 		InvalidateCompanyWindows(c);
 		SetWindowDirty(WC_VENTURE_CAPITAL, 0);
 	}
@@ -79,10 +80,11 @@ CommandCost CmdSellVentureStake(DoCommandFlags flags, uint8_t slot, uint16_t bp)
 	uint16_t held = v.stakes[c->index.base()];
 	if (held < bp) return CommandCost(STR_ERROR_VENTURE_NO_STAKE);
 
-	Money proceeds = v.valuation * bp / 10000 * VENTURE_SELL_PCT / 100;
+	Money proceeds = GetVentureSellValue(v, bp);
 
 	if (flags.Test(DoCommandFlag::Execute)) {
 		v.stakes[c->index.base()] = held - bp;
+		v.cost_basis[c->index.base()] -= v.cost_basis[c->index.base()] * bp / held;
 		if (c->money <= Money::max() - proceeds) c->money += proceeds;
 		InvalidateCompanyWindows(c);
 		SetWindowDirty(WC_VENTURE_CAPITAL, 0);

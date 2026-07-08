@@ -9,10 +9,16 @@
 
 #include "stdafx.h"
 #include "core/math_func.hpp"
+#include "economy_func.h"
 #include "house.h"
 #include "industry.h"
+#include "map_func.h"
+#include "tile_map.h"
 #include "town.h"
+#include "town_map.h"
 #include "townzone.h"
+
+#include "table/strings.h"
 
 #include "safeguards.h"
 
@@ -51,6 +57,44 @@ static void CountTownZoneBuildings(const Town *t, uint &res, uint &com)
 	}
 }
 
+/** @return User-facing label for a town zone. */
+StringID GetTownZoneLabel(TownZone zone)
+{
+	switch (zone) {
+		case TownZone::Residential: return STR_TOWN_ZONES_RESIDENTIAL_NAME;
+		case TownZone::Commercial:  return STR_TOWN_ZONES_COMMERCIAL_NAME;
+		case TownZone::Industrial:  return STR_TOWN_ZONES_INDUSTRIAL_NAME;
+	}
+	NOT_REACHED();
+}
+
+/** @return Cost to place a building in this zone. */
+Money GetTownZoneBuildCost(TownZone zone)
+{
+	switch (zone) {
+		case TownZone::Residential: return std::max<Money>(_price[PR_BUILD_TOWN] / 40, _price[PR_CLEAR_HOUSE] * 2);
+		case TownZone::Commercial:  return std::max<Money>(_price[PR_BUILD_TOWN] / 25, _price[PR_CLEAR_HOUSE] * 3);
+		case TownZone::Industrial:  return _price[PR_BUILD_INDUSTRY];
+	}
+	NOT_REACHED();
+}
+
+/** Count population already committed by residential buildings still under construction. */
+static uint CountPendingResidentialPopulation(const Town *t)
+{
+	if (!Map::IsInitialized()) return 0;
+
+	uint pending = 0;
+	for (Tile tile : Map::Iterate()) {
+		TileIndex tile_index = tile;
+		if (!IsTileType(tile_index, MP_HOUSE) || Town::GetByTile(tile_index) != t || IsHouseCompleted(tile_index)) continue;
+
+		const HouseSpec *hs = HouseSpec::Get(GetHouseType(tile_index));
+		if (IsResidentialHouseSpec(*hs)) pending += hs->population;
+	}
+	return pending;
+}
+
 /**
  * Compute the current demand of a town for a building zone.
  *
@@ -63,23 +107,31 @@ static void CountTownZoneBuildings(const Town *t, uint &res, uint &com)
  * @param zone The zone to compute demand for.
  * @return Demand in the range 0 (none) to 100 (desperate).
  */
-uint GetTownZoneDemand(const Town *t, TownZone zone)
+TownZoneDemandDetails GetTownZoneDemandDetails(const Town *t, TownZone zone)
 {
+	TownZoneDemandDetails details;
+
 	uint res, com;
 	CountTownZoneBuildings(t, res, com);
+	details.residential_buildings = res;
+	details.commercial_buildings = com;
 
 	uint industries = 0;
 	for (const Industry *i : Industry::Iterate()) {
 		if (i->town == t) industries++;
 	}
+	details.industries = industries;
+	details.population = t->cache.population;
+	details.pending_population = CountPendingResidentialPopulation(t);
 
-	int pop = static_cast<int>(t->cache.population);
+	int pop = static_cast<int>(details.population + details.pending_population);
 	int demand = 0;
 
 	switch (zone) {
 		case TownZone::Residential: {
 			/* People move in when there are more jobs than workers. */
 			int jobs = static_cast<int>(com) * 12 + static_cast<int>(industries) * 60;
+			details.jobs = ClampTo<uint>(jobs);
 			demand = 55 + (jobs - pop / 3) / 4;
 			break;
 		}
@@ -95,5 +147,11 @@ uint GetTownZoneDemand(const Town *t, TownZone zone)
 			break;
 	}
 
-	return static_cast<uint>(Clamp(demand, 0, 100));
+	details.demand = static_cast<uint>(Clamp(demand, 0, 100));
+	return details;
+}
+
+uint GetTownZoneDemand(const Town *t, TownZone zone)
+{
+	return GetTownZoneDemandDetails(t, zone).demand;
 }

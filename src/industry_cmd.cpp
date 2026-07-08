@@ -50,6 +50,7 @@
 #include "timer/timer_game_calendar.h"
 #include "timer/timer_game_economy.h"
 #include "timer/timer_game_tick.h"
+#include "townzone.h"
 
 #include "table/strings.h"
 #include "table/industry_land.h"
@@ -2087,6 +2088,10 @@ CommandCost CmdBuildIndustry(DoCommandFlags flags, TileIndex tile, IndustryType 
 	size_t num_layouts = indspec->layouts.size();
 	CommandCost ret = CommandCost(STR_ERROR_SITE_UNSUITABLE);
 	const bool deity_prospect = _current_company == OWNER_DEITY && !fund;
+	if (_game_mode != GM_EDITOR && _current_company != OWNER_DEITY && tile != TileIndex{} &&
+			GetTownZoneDemand(ClosestTownFromTile(tile, UINT_MAX), TownZone::Industrial) < TOWNZONE_PLACE_THRESHOLD) {
+		return CommandCost(STR_ERROR_ZONE_NO_DEMAND);
+	}
 
 	Industry *ind = nullptr;
 	if (deity_prospect || (_game_mode != GM_EDITOR && _current_company != OWNER_DEITY && _settings_game.construction.raw_industry_construction == 2 && indspec->IsRawIndustry())) {

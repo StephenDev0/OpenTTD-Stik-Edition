@@ -13,6 +13,7 @@
 /** Widgets of the #VenturesWindow class. */
 enum VentureWidgets : WidgetID {
 	WID_VC_LIST, ///< List of startups.
+	WID_VC_DETAILS, ///< Details of the selected startup.
 	WID_VC_BUY,  ///< Buy stake in the selected startup.
 	WID_VC_SELL, ///< Sell stake in the selected startup.
 };

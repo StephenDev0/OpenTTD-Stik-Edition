@@ -10,6 +10,7 @@
 #include "stdafx.h"
 #include "command_func.h"
 #include "core/random_func.hpp"
+#include "economy_func.h"
 #include "house.h"
 #include "tile_map.h"
 #include "landscape.h"
@@ -51,8 +52,12 @@ static HouseID SelectPlayerHouse(const Town *t, TileIndex tile, Slope slope, Tow
 		case LandscapeType::Toyland: zones.Set(HouseZone::ClimateToyland); break;
 	}
 
-	HouseID best = INVALID_HOUSE_ID;
-	uint best_probability = 0;
+	struct Candidate {
+		HouseID house;
+		uint probability;
+	};
+	std::vector<Candidate> candidates;
+	uint total_probability = 0;
 
 	for (const auto &hs : HouseSpec::Specs()) {
 		if (!hs.enabled || hs.grf_prop.override_id != INVALID_HOUSE_ID) continue;
@@ -74,13 +79,24 @@ static HouseID SelectPlayerHouse(const Town *t, TileIndex tile, Slope slope, Tow
 			if (t->cache.building_counts.id_count[hs.Index()] == UINT16_MAX) continue;
 		}
 
-		if (hs.probability > best_probability) {
-			best_probability = hs.probability;
-			best = hs.Index();
-		}
+		uint probability = std::max<uint>(hs.probability, 1);
+		candidates.emplace_back(hs.Index(), probability);
+		total_probability += probability;
 	}
 
-	return best;
+	if (candidates.empty()) return INVALID_HOUSE_ID;
+
+	uint seed = tile.base();
+	seed ^= (t->index.base() + 0x9E3779B9U + (seed << 6) + (seed >> 2));
+	seed ^= (TimerGameCalendar::year.base() + 0x85EBCA6BU + (seed << 6) + (seed >> 2));
+	seed ^= (to_underlying(zone) + 0xC2B2AE35U + (seed << 6) + (seed >> 2));
+	uint pick = seed % total_probability;
+	for (const Candidate &candidate : candidates) {
+		if (pick < candidate.probability) return candidate.house;
+		pick -= candidate.probability;
+	}
+
+	return candidates.front().house;
 }
 
 /**
@@ -110,6 +126,7 @@ CommandCost CmdPlacePlayerHouse(DoCommandFlags flags, TileIndex tile, TownZone z
 
 	HouseID house = SelectPlayerHouse(t, tile, slope, zone);
 	if (house == INVALID_HOUSE_ID) return CommandCost(STR_ERROR_CITY_NO_SUITABLE_HOUSE);
+	cost.AddCost(GetTownZoneBuildCost(zone));
 
 	if (flags.Test(DoCommandFlag::Execute)) {
 		BuildPlayerHouse(t, tile, HouseSpec::Get(house), house, static_cast<uint8_t>(Random()));

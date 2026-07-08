@@ -13,6 +13,8 @@
 #include "company_func.h"
 #include "finance_cmd.h"
 #include "finance_valuation.h"
+#include "news_func.h"
+#include "strings_func.h"
 #include "window_func.h"
 
 #include "table/strings.h"
@@ -51,6 +53,7 @@ CommandCost CmdFileIpo(DoCommandFlags flags, uint8_t float_pct)
 		c->shares_outstanding = IPO_SHARES_OUTSTANDING;
 		c->share_price = eligibility.valuation / IPO_SHARES_OUTSTANDING;
 		SetWindowDirty(WC_FINANCES, c->index);
+		AddNewsItem(GetEncodedString(STR_NEWS_COMPANY_IPO, c->index, float_pct, proceeds), NewsType::Economy, NewsStyle::Normal, {});
 	}
 
 	/* Negative cost: the framework credits the IPO proceeds to the company. */
@@ -73,6 +76,7 @@ CommandCost CmdIssueDividend(DoCommandFlags flags, Money amount)
 
 	if (flags.Test(DoCommandFlag::Execute)) {
 		SetWindowDirty(WC_FINANCES, c->index);
+		AddNewsItem(GetEncodedString(STR_NEWS_DIVIDEND_PAID, c->index, amount), NewsType::Economy, NewsStyle::Normal, {});
 	}
 
 	/* The framework charges the amount and refuses it when unaffordable. */

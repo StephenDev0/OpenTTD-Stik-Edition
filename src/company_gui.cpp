@@ -415,7 +415,12 @@ struct CompanyFinancesWindow : Window {
 			case WID_CF_SHARE_STATUS_VALUE: {
 				const Company *c = Company::Get(this->window_number);
 				if (c->is_public) return GetString(STR_FINANCES_SHARE_STATUS_PUBLIC, c->public_float_pct, c->share_price);
-				return GetString(CheckIpoEligibility(c).IsEligible() ? STR_FINANCES_SHARE_STATUS_ELIGIBLE : STR_FINANCES_SHARE_STATUS_PRIVATE);
+				IpoEligibility eligibility = CheckIpoEligibility(c);
+				if (eligibility.IsEligible()) return GetString(STR_FINANCES_SHARE_STATUS_ELIGIBLE);
+				if (!eligibility.age_ok) return GetString(STR_FINANCES_SHARE_STATUS_NEEDS_AGE, eligibility.age_years, IPO_MIN_AGE_YEARS);
+				if (!eligibility.income_ok) return GetString(STR_FINANCES_SHARE_STATUS_NEEDS_PROFIT, eligibility.profitable_quarters, IPO_REQUIRED_PROFITABLE_QUARTERS);
+				if (!eligibility.valuation_ok) return GetString(STR_FINANCES_SHARE_STATUS_NEEDS_VALUE, eligibility.valuation, IPO_MIN_VALUATION);
+				return GetString(STR_FINANCES_SHARE_STATUS_PRIVATE);
 			}
 
 			case WID_CF_DIVIDEND_POLICY: {
@@ -525,8 +530,8 @@ struct CompanyFinancesWindow : Window {
 			const Company *c = Company::Get(company);
 			this->SetWidgetDisabledState(WID_CF_INCREASE_LOAN, c->current_loan >= c->GetMaxLoan()); // Borrow button only shows when there is any more money to loan.
 			this->SetWidgetDisabledState(WID_CF_REPAY_LOAN, company != _local_company || c->current_loan == 0); // Repay button only shows when there is any more money to repay.
-			/* CITYSIM: IPO only once; dividends and policy only for public companies. */
-			this->SetWidgetDisabledState(WID_CF_FILE_IPO, c->is_public);
+			/* CITYSIM: IPO only when locally owned, private, and eligible; dividends and policy only for public companies. */
+			this->SetWidgetDisabledState(WID_CF_FILE_IPO, company != _local_company || !CheckIpoEligibility(c).IsEligible());
 			this->SetWidgetDisabledState(WID_CF_PAY_DIVIDEND, !c->is_public);
 			this->SetWidgetDisabledState(WID_CF_DIVIDEND_POLICY, company != _local_company || !c->is_public);
 		}
@@ -562,9 +567,14 @@ struct CompanyFinancesWindow : Window {
 				break;
 
 			/* CITYSIM: stock market buttons. */
-			case WID_CF_FILE_IPO:
-				Command<CMD_FILE_IPO>::Post(STR_ERROR_CAN_T_FILE_IPO, IPO_FLOAT_PCT);
+			case WID_CF_FILE_IPO: {
+				DropDownList list;
+				for (uint8_t percent : {IPO_MIN_FLOAT_PCT, IPO_FLOAT_PCT, uint8_t{33}, IPO_MAX_FLOAT_PCT}) {
+					list.push_back(MakeDropDownListStringItem(GetString(STR_FINANCES_IPO_FLOAT_OPTION, percent), percent));
+				}
+				ShowDropDownList(this, std::move(list), IPO_FLOAT_PCT, WID_CF_FILE_IPO);
 				break;
+			}
 
 			case WID_CF_PAY_DIVIDEND:
 				Command<CMD_ISSUE_DIVIDEND>::Post(STR_ERROR_CAN_T_PAY_DIVIDEND, _ctrl_pressed ? DIVIDEND_INTERVAL * 10 : DIVIDEND_INTERVAL);
@@ -587,11 +597,17 @@ struct CompanyFinancesWindow : Window {
 		}
 	}
 
-	/* CITYSIM: dividend policy selection. */
+	/* CITYSIM: stock market dropdown selection. */
 	void OnDropdownSelect(WidgetID widget, int index, int) override
 	{
-		if (widget != WID_CF_DIVIDEND_POLICY) return;
-		Command<CMD_SET_DIVIDEND_POLICY>::Post(STR_ERROR_CAN_T_SET_DIVIDEND_POLICY, ClampTo<uint8_t>(index));
+		if (widget == WID_CF_DIVIDEND_POLICY) {
+			Command<CMD_SET_DIVIDEND_POLICY>::Post(STR_ERROR_CAN_T_SET_DIVIDEND_POLICY, ClampTo<uint8_t>(index));
+			return;
+		}
+		if (widget == WID_CF_FILE_IPO) {
+			Command<CMD_FILE_IPO>::Post(STR_ERROR_CAN_T_FILE_IPO, ClampTo<uint8_t>(index));
+			return;
+		}
 	}
 	/* CITYSIM: end. */
 

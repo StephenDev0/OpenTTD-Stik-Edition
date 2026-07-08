@@ -32,11 +32,11 @@ struct TownZoneBarInfo {
 	PixelColour colour;
 };
 
-static const TownZoneBarInfo _townzone_bars[] = {
-	{TownZone::Residential, STR_TOWN_ZONES_RESIDENTIAL, PC_GREEN},
-	{TownZone::Commercial,  STR_TOWN_ZONES_COMMERCIAL,  PC_LIGHT_BLUE},
-	{TownZone::Industrial,  STR_TOWN_ZONES_INDUSTRIAL,  PC_ORANGE},
-};
+	static const TownZoneBarInfo _townzone_bars[] = {
+		{TownZone::Residential, STR_TOWN_ZONES_RESIDENTIAL, PC_GREEN},
+		{TownZone::Commercial,  STR_TOWN_ZONES_COMMERCIAL,  PC_LIGHT_BLUE},
+		{TownZone::Industrial,  STR_TOWN_ZONES_INDUSTRIAL,  PC_ORANGE},
+	};
 
 /** Window showing the R/C/I demand bars of a town. */
 struct TownZonesWindow : Window {
@@ -60,7 +60,7 @@ struct TownZonesWindow : Window {
 			label_width = std::max(label_width, GetStringBoundingBox(GetString(bar.label, 100u)).width);
 		}
 		size.width = std::max(size.width, label_width + ScaleGUITrad(120) + WidgetDimensions::scaled.framerect.Horizontal() + WidgetDimensions::scaled.hsep_wide);
-		size.height = std::size(_townzone_bars) * (GetCharacterHeight(FS_NORMAL) + WidgetDimensions::scaled.vsep_normal) + WidgetDimensions::scaled.framerect.Vertical();
+			size.height = std::size(_townzone_bars) * (GetCharacterHeight(FS_NORMAL) + WidgetDimensions::scaled.vsep_normal) + GetCharacterHeight(FS_NORMAL) * 2 + WidgetDimensions::scaled.framerect.Vertical();
 	}
 
 	void DrawWidget(const Rect &r, WidgetID widget) const override
@@ -79,9 +79,10 @@ struct TownZonesWindow : Window {
 			label_width = std::max(label_width, GetStringBoundingBox(GetString(bar.label, 100u)).width);
 		}
 
-		for (const auto &bar : _townzone_bars) {
-			uint demand = GetTownZoneDemand(t, bar.zone);
-			DrawString(ir.left, ir.left + label_width, y, GetString(bar.label, demand));
+			for (const auto &bar : _townzone_bars) {
+				TownZoneDemandDetails details = GetTownZoneDemandDetails(t, bar.zone);
+				uint demand = details.demand;
+				DrawString(ir.left, ir.left + label_width, y, GetString(bar.label, demand));
 
 			/* The bar itself: dark background, coloured fill proportional to demand. */
 			int bar_left = ir.left + label_width + WidgetDimensions::scaled.hsep_wide;
@@ -93,9 +94,14 @@ struct TownZonesWindow : Window {
 				GfxFillRect(bar_left + 1, bar_top + 1, bar_left + 1 + fill, bar_bottom - 1, bar.colour);
 			}
 
-			y += line_height + WidgetDimensions::scaled.vsep_normal;
+				y += line_height + WidgetDimensions::scaled.vsep_normal;
+			}
+
+			TownZoneDemandDetails res = GetTownZoneDemandDetails(t, TownZone::Residential);
+			DrawString(ir.left, ir.right, y, GetString(STR_TOWN_ZONES_DETAIL_POPULATION, res.population, res.pending_population, res.jobs));
+			y += line_height;
+			DrawString(ir.left, ir.right, y, GetString(STR_TOWN_ZONES_DETAIL_BUILD_COST, GetTownZoneBuildCost(TownZone::Residential), GetTownZoneBuildCost(TownZone::Commercial)));
 		}
-	}
 
 	/** Demand changes as the town evolves; refresh regularly. */
 	const IntervalTimer<TimerWindow> refresh_interval = {std::chrono::seconds(1), [this](auto) {

@@ -23,6 +23,7 @@ static const SaveLoad _venture_desc[] = {
 	SLE_VAR(Venture, quarters_in_stage, SLE_UINT8),
 	SLE_VAR(Venture, respawn_timer,     SLE_UINT8),
 	SLE_ARR(Venture, stakes,            SLE_UINT16, MAX_COMPANIES),
+	SLE_CONDARR(Venture, cost_basis,    SLE_INT64,  MAX_COMPANIES, SLV_CITYSIM_VENTURES, SL_MAX_VERSION),
 };
 
 struct VNTRChunkHandler : ChunkHandler {

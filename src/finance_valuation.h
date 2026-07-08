@@ -38,6 +38,8 @@ static constexpr Money DIVIDEND_INTERVAL = 10000;
 /** Result of testing all IPO gates for a company. */
 struct IpoEligibility {
 	Money valuation = 0; ///< Current income-based valuation.
+	uint age_years = 0; ///< Company age in economy years.
+	uint profitable_quarters = 0; ///< Consecutive profitable quarters counted from the newest quarter.
 	bool already_public = false; ///< Company is already listed.
 	bool age_ok = false; ///< Company is old enough.
 	bool income_ok = false; ///< Enough consecutive profitable quarters.

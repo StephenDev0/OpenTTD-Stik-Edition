@@ -490,15 +490,22 @@ STR_CITYBUILD_TOOLBAR_CAPTION                                   :{WHITE}City Bui
 STR_CITYBUILD_TOOLBAR_PLACE_HOUSE_TOOLTIP                       :{BLACK}Place a residential building. Requires residential demand in the town
 STR_CITYBUILD_TOOLBAR_PLACE_COMMERCIAL_TOOLTIP                  :{BLACK}Place a commercial building (shops and offices). Requires commercial demand in the town
 STR_CITYBUILD_TOOLBAR_FUND_INDUSTRY_TOOLTIP                     :{BLACK}Fund a new industry. Check the town's industrial demand first
+STR_CITYBUILD_TOOLBAR_STATUS                                    :{BLACK}Build when demand is at least {NUM}%. Cost: residential {CURRENCY_LONG}, commercial {CURRENCY_LONG}
 
 # Town zones window (CITYSIM)
 STR_TOWN_VIEW_ZONES_BUTTON                                      :{BLACK}Zones
 STR_TOWN_VIEW_ZONES_TOOLTIP                                     :{BLACK}Show residential, commercial and industrial demand of this town
 STR_TOWN_ZONES_CAPTION                                          :{WHITE}{TOWN} - Zone Demand
 STR_TOWN_ZONES_BARS_TOOLTIP                                     :{BLACK}Demand for new buildings per zone. Place buildings with the City Building toolbar while demand is high
+STR_TOWN_ZONES_RESIDENTIAL_NAME                                 :residential
+STR_TOWN_ZONES_COMMERCIAL_NAME                                  :commercial
+STR_TOWN_ZONES_INDUSTRIAL_NAME                                  :industrial
 STR_TOWN_ZONES_RESIDENTIAL                                      :{BLACK}Residential: {NUM}%
 STR_TOWN_ZONES_COMMERCIAL                                       :{BLACK}Commercial: {NUM}%
 STR_TOWN_ZONES_INDUSTRIAL                                       :{BLACK}Industrial: {NUM}%
+STR_TOWN_ZONES_DETAIL_POPULATION                                :{BLACK}Population: {NUM} complete, {NUM} under construction. Jobs: {NUM}
+STR_TOWN_ZONES_DETAIL_BUILD_COST                                :{BLACK}Build cost: residential {CURRENCY_LONG}, commercial {CURRENCY_LONG}
+STR_TOWN_VIEW_ZONE_DEMAND_SUMMARY                               :{BLACK}Demand R/C/I: {NUM}% / {NUM}% / {NUM}%
 
 # Subsidies menu
 STR_SUBSIDIES_MENU_SUBSIDIES                                    :Subsidies
@@ -3995,11 +4002,15 @@ STR_FINANCES_SHARES_TITLE                                       :{WHITE}Listing
 STR_FINANCES_SHARE_STATUS_PUBLIC                                :{BLACK}Public, {NUM}% floated, share price {CURRENCY_LONG}
 STR_FINANCES_SHARE_STATUS_ELIGIBLE                              :{BLACK}Private, eligible for IPO
 STR_FINANCES_SHARE_STATUS_PRIVATE                               :{BLACK}Private, not eligible for IPO
+STR_FINANCES_SHARE_STATUS_NEEDS_AGE                             :{BLACK}Private, IPO age gate: {NUM}/{NUM} years
+STR_FINANCES_SHARE_STATUS_NEEDS_PROFIT                          :{BLACK}Private, profitable quarters: {NUM}/{NUM}
+STR_FINANCES_SHARE_STATUS_NEEDS_VALUE                           :{BLACK}Private, valuation {CURRENCY_LONG}/{CURRENCY_LONG}
 STR_FINANCES_DIVIDEND_POLICY_TITLE                              :{WHITE}Dividend Policy
 STR_FINANCES_DIVIDEND_POLICY_VALUE                              :{BLACK}{NUM}% of profit
-STR_FINANCES_DIVIDEND_POLICY_TOOLTIP                            :{BLACK}Percentage of each quarter's operating profit automatically paid to public shareholders
+STR_FINANCES_DIVIDEND_POLICY_TOOLTIP                            :{BLACK}Percentage of each quarter's operating profit automatically paid to public shareholders, scaled by the public float
 STR_FINANCES_IPO_BUTTON                                         :{BLACK}File IPO
 STR_FINANCES_IPO_TOOLTIP                                        :{BLACK}Take the company public. Requires an established, profitable company; proceeds are based on the market valuation
+STR_FINANCES_IPO_FLOAT_OPTION                                   :{BLACK}Float {NUM}% of company
 STR_FINANCES_DIVIDEND_BUTTON                                    :{BLACK}Dividend {CURRENCY_LONG}
 STR_FINANCES_DIVIDEND_TOOLTIP                                   :{BLACK}Pay a cash dividend to public shareholders. Ctrl+Click to pay ten times as much
 STR_FINANCES_VENTURES_BUTTON                                    :{BLACK}Ventures
@@ -4009,6 +4020,10 @@ STR_FINANCES_VENTURES_TOOLTIP                                   :{BLACK}Invest i
 STR_VENTURE_CAPTION                                             :{WHITE}Venture Capital
 STR_VENTURE_LIST_TOOLTIP                                        :{BLACK}Click a startup to select it. Most startups fail, but survivors pay out big on IPO or acquisition
 STR_VENTURE_ROW                                                 :{BLACK}{STRING} {GOLD}{STRING}{BLACK} - {CURRENCY_LONG} - your stake: {NUM}%
+STR_VENTURE_DETAIL_NONE                                         :{BLACK}Select a startup to inspect stake value, sell value and limits
+STR_VENTURE_DETAIL_ACTIVE                                       :{BLACK}{STRING}: {NUM}% sold, stake value {CURRENCY_LONG}, sell value {CURRENCY_LONG}, cost basis {CURRENCY_LONG}, stage age {NUM}/{NUM} quarters
+STR_VENTURE_DETAIL_LIMITS                                       :{BLACK}Limits: {NUM}% per company, {NUM}% total sold. Private sales pay {NUM}% of value
+STR_VENTURE_DETAIL_TRADE                                        :{BLACK}1% costs {CURRENCY_LONG}; selling 1% returns {CURRENCY_LONG}
 STR_VENTURE_BUY_BUTTON                                          :{BLACK}Invest 1%
 STR_VENTURE_BUY_TOOLTIP                                         :{BLACK}Buy a 1% stake in the selected startup at its current valuation. Ctrl+Click to buy 10%
 STR_VENTURE_SELL_BUTTON                                         :{BLACK}Sell 1%
@@ -4047,6 +4062,13 @@ STR_VENTURE_NAME_20                                             :Meteor Metrics
 STR_VENTURE_NAME_21                                             :Rocket Radish Farms
 STR_VENTURE_NAME_22                                             :HyperBore Tunnelling
 STR_VENTURE_NAME_23                                             :Starlit Cargo Lines
+
+STR_NEWS_VENTURE_FAILED                                         :{BIG_FONT}{BLACK}{STRING} goes bankrupt!{}{}Investors lose their stake as the startup shuts down.
+STR_NEWS_VENTURE_IPO                                            :{BIG_FONT}{BLACK}{STRING} goes public!{}{}The startup exits at a market value of {CURRENCY_LONG}.
+STR_NEWS_VENTURE_ACQUIRED                                       :{BIG_FONT}{BLACK}{STRING} acquired!{}{}Shareholders are paid from an acquisition value of {CURRENCY_LONG}.
+STR_NEWS_COMPANY_IPO                                            :{BIG_FONT}{BLACK}{COMPANY} files an IPO!{}{}The company floats {NUM}% and raises {CURRENCY_LONG}.
+STR_NEWS_DIVIDEND_PAID                                          :{BIG_FONT}{BLACK}{COMPANY} pays a dividend!{}{}Public shareholders receive {CURRENCY_LONG}.
+STR_NEWS_SHARE_PRICE_MOVES                                      :{BIG_FONT}{BLACK}{COMPANY} share price moves!{}{}The share price changes from {CURRENCY_LONG} to {CURRENCY_LONG}.
 
 # Company view
 STR_COMPANY_VIEW_CAPTION                                        :{WHITE}{COMPANY} {BLACK}{COMPANY_NUM}

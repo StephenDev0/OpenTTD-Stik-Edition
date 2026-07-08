@@ -13,11 +13,13 @@
 #include "command_func.h"
 #include "company_base.h"
 #include "company_func.h"
+#include "strings_func.h"
 #include "hotkeys.h"
 #include "gui.h"
 #include "tilehighlight_func.h"
 #include "citybuild_cmd.h"
 #include "road_cmd.h"
+#include "townzone.h"
 
 #include "widgets/citybuild_widget.h"
 
@@ -62,6 +64,21 @@ struct CityBuildToolbarWindow : Window {
 		this->RaiseButtons();
 	}
 
+	void UpdateWidgetSize(WidgetID widget, Dimension &size, [[maybe_unused]] const Dimension &padding, [[maybe_unused]] Dimension &fill, [[maybe_unused]] Dimension &resize) override
+	{
+		if (widget != WID_CBT_STATUS) return;
+
+		size.width = std::max(size.width, GetStringBoundingBox(GetString(STR_CITYBUILD_TOOLBAR_STATUS, TOWNZONE_PLACE_THRESHOLD, GetTownZoneBuildCost(TownZone::Residential), GetTownZoneBuildCost(TownZone::Commercial))).width + WidgetDimensions::scaled.framerect.Horizontal());
+		size.height = GetCharacterHeight(FS_NORMAL) + WidgetDimensions::scaled.framerect.Vertical();
+	}
+
+	void DrawWidget(const Rect &r, WidgetID widget) const override
+	{
+		if (widget != WID_CBT_STATUS) return;
+
+		DrawString(r.Shrink(WidgetDimensions::scaled.framerect), GetString(STR_CITYBUILD_TOOLBAR_STATUS, TOWNZONE_PLACE_THRESHOLD, GetTownZoneBuildCost(TownZone::Residential), GetTownZoneBuildCost(TownZone::Commercial)));
+	}
+
 	/**
 	 * Handler for global hotkeys of the CityBuildToolbarWindow.
 	 * @param hotkey Hotkey
@@ -94,6 +111,7 @@ static constexpr std::initializer_list<NWidgetPart> _nested_citybuild_toolbar_wi
 		NWidget(WWT_IMGBTN, COLOUR_DARK_GREEN, WID_CBT_PLACE_COMMERCIAL), SetToolbarMinimalSize(1), SetFill(0, 1), SetSpriteTip(SPR_IMG_COMPANY_GENERAL, STR_CITYBUILD_TOOLBAR_PLACE_COMMERCIAL_TOOLTIP),
 		NWidget(WWT_IMGBTN, COLOUR_DARK_GREEN, WID_CBT_FUND_INDUSTRY), SetToolbarMinimalSize(1), SetFill(0, 1), SetSpriteTip(SPR_IMG_INDUSTRY, STR_CITYBUILD_TOOLBAR_FUND_INDUSTRY_TOOLTIP),
 	EndContainer(),
+	NWidget(WWT_PANEL, COLOUR_DARK_GREEN, WID_CBT_STATUS), EndContainer(),
 };
 
 static WindowDesc _citybuild_toolbar_desc(

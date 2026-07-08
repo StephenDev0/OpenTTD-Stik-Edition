@@ -12,8 +12,12 @@
 #include "company_func.h"
 #include "core/backup_type.hpp"
 #include "finance_valuation.h"
+#include "news_func.h"
+#include "strings_func.h"
 #include "timer/timer_game_economy.h"
 #include "window_func.h"
+
+#include "table/strings.h"
 
 #include "safeguards.h"
 
@@ -53,16 +57,18 @@ IpoEligibility CheckIpoEligibility(const Company *c)
 
 	result.valuation = CalculateIncomeBasedValuation(c);
 	result.already_public = c->is_public;
+	result.age_years = static_cast<uint>(std::max<int32_t>(0, TimerGameEconomy::year.base() - c->inaugurated_year.base()));
 	result.age_ok = TimerGameEconomy::year >= c->inaugurated_year + IPO_MIN_AGE_YEARS;
 	result.valuation_ok = result.valuation >= IPO_MIN_VALUATION;
 
 	result.income_ok = c->num_valid_stat_ent >= IPO_REQUIRED_PROFITABLE_QUARTERS;
+	for (uint i = 0; i < std::min<uint>(c->num_valid_stat_ent, IPO_REQUIRED_PROFITABLE_QUARTERS); i++) {
+		if (c->old_economy[i].income + c->old_economy[i].expenses <= 0) break;
+		result.profitable_quarters++;
+	}
 	if (result.income_ok) {
-		for (uint i = 0; i < IPO_REQUIRED_PROFITABLE_QUARTERS; i++) {
-			if (c->old_economy[i].income + c->old_economy[i].expenses <= 0) {
-				result.income_ok = false;
-				break;
-			}
+		if (result.profitable_quarters < IPO_REQUIRED_PROFITABLE_QUARTERS) {
+			result.income_ok = false;
 		}
 	}
 
@@ -85,16 +91,24 @@ void UpdatePublicCompaniesFinance()
 		if (!c->is_public) continue;
 
 		if (c->shares_outstanding != 0) {
+			Money old_price = c->share_price;
 			c->share_price = CalculateIncomeBasedValuation(c) / c->shares_outstanding;
+			if (old_price > 0 && c->share_price > 0) {
+				Money delta = c->share_price > old_price ? c->share_price - old_price : old_price - c->share_price;
+				if (delta * 100 >= old_price * 20) {
+					AddNewsItem(GetEncodedString(STR_NEWS_SHARE_PRICE_MOVES, c->index, old_price, c->share_price), NewsType::Economy, NewsStyle::Normal, {});
+				}
+			}
 		}
 
 		if (c->dividend_policy > 0) {
 			Money profit = c->old_economy[0].income + c->old_economy[0].expenses;
 			if (profit > 0) {
-				Money payout = profit * c->dividend_policy / 100;
+				Money payout = profit * c->dividend_policy * c->public_float_pct / 10000;
 				if (payout > 0 && GetAvailableMoney(c->index) >= payout) {
 					cur_company.Change(c->index);
 					SubtractMoneyFromCompany(CommandCost(EXPENSES_OTHER, payout));
+					AddNewsItem(GetEncodedString(STR_NEWS_DIVIDEND_PAID, c->index, payout), NewsType::Economy, NewsStyle::Normal, {});
 				}
 			}
 		}

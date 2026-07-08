@@ -54,6 +54,7 @@ struct Venture {
 	uint8_t quarters_in_stage = 0;
 	uint8_t respawn_timer = 0; ///< Quarters until a fresh startup takes a non-active slot.
 	std::array<uint16_t, MAX_COMPANIES> stakes{}; ///< Stake per company, in basis points.
+	std::array<Money, MAX_COMPANIES> cost_basis{}; ///< Cash paid for each company's current stake.
 };
 
 extern std::array<Venture, NUM_VENTURES> _ventures;
@@ -63,6 +64,8 @@ void UpdateVentures();
 StringID GetVentureNameString(const Venture &v);
 StringID GetVentureStatusString(const Venture &v);
 uint16_t GetTotalVentureStakeBp(const Venture &v);
+Money GetVentureStakeValue(const Venture &v, uint16_t bp);
+Money GetVentureSellValue(const Venture &v, uint16_t bp);
 
 void ShowVenturesWindow();
 

@@ -12,6 +12,8 @@
 #include "company_func.h"
 #include "company_gui.h"
 #include "core/random_func.hpp"
+#include "news_func.h"
+#include "strings_func.h"
 #include "venture.h"
 #include "window_func.h"
 
@@ -62,6 +64,16 @@ uint16_t GetTotalVentureStakeBp(const Venture &v)
 	return static_cast<uint16_t>(total);
 }
 
+Money GetVentureStakeValue(const Venture &v, uint16_t bp)
+{
+	return v.valuation * bp / 10000;
+}
+
+Money GetVentureSellValue(const Venture &v, uint16_t bp)
+{
+	return GetVentureStakeValue(v, bp) * VENTURE_SELL_PCT / 100;
+}
+
 /** Spawn a fresh seed-stage startup into a slot, using the synced RNG. */
 static void SpawnVenture(Venture &v)
 {
@@ -82,6 +94,7 @@ static void SpawnVenture(Venture &v)
 	v.quarters_in_stage = 0;
 	v.respawn_timer = 0;
 	v.stakes.fill(0);
+	v.cost_basis.fill(0);
 }
 
 /** Reset the venture board for a new game. */
@@ -123,7 +136,10 @@ void UpdateVentures()
 		/* Drop stakes of companies that no longer exist, so a future company
 		 * reusing the pool slot does not inherit them. */
 		for (uint i = 0; i < MAX_COMPANIES; i++) {
-			if (v.stakes[i] != 0 && !Company::IsValidID(static_cast<CompanyID>(i))) v.stakes[i] = 0;
+			if (v.stakes[i] != 0 && !Company::IsValidID(static_cast<CompanyID>(i))) {
+				v.stakes[i] = 0;
+				v.cost_basis[i] = 0;
+			}
 		}
 
 		if (v.state != VentureState::Active) {
@@ -145,7 +161,9 @@ void UpdateVentures()
 			v.state = VentureState::Failed;
 			v.valuation = 0;
 			v.stakes.fill(0);
+			v.cost_basis.fill(0);
 			v.respawn_timer = VENTURE_RESPAWN_QUARTERS;
+			AddNewsItem(GetEncodedString(STR_NEWS_VENTURE_FAILED, GetVentureNameString(v)), NewsType::Economy, NewsStyle::Normal, {});
 		} else if (v.quarters_in_stage >= VENTURE_MIN_QUARTERS_PER_STAGE && roll < fail_chance + VENTURE_ADVANCE_CHANCE) {
 			if (v.stage != VentureStage::SeriesC) {
 				/* Next funding round at a higher valuation. */
@@ -160,6 +178,7 @@ void UpdateVentures()
 				v.state = ipo ? VentureState::ExitedIpo : VentureState::ExitedAcquired;
 				v.valuation = exit_value;
 				v.respawn_timer = VENTURE_RESPAWN_QUARTERS;
+				AddNewsItem(GetEncodedString(ipo ? STR_NEWS_VENTURE_IPO : STR_NEWS_VENTURE_ACQUIRED, GetVentureNameString(v), exit_value), NewsType::Economy, NewsStyle::Normal, {});
 			}
 		} else {
 			/* Drift between -15% and +15%. */

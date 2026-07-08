@@ -414,6 +414,7 @@ enum SaveLoadVersion : uint16_t {
 	SLV_ENGINE_MULTI_RAILTYPE,              ///< 362  PR#14357 Train engines can have multiple railtypes.
 
 	SLV_CITYSIM_FINANCE,                    ///< 363  CITYSIM fork: company IPO and dividend state.
+	SLV_CITYSIM_VENTURES,                   ///< 364  CITYSIM fork: venture cost basis state.
 
 	SL_MAX_VERSION,                         ///< Highest possible saveload version
 };
