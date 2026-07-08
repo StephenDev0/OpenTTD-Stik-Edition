@@ -52,12 +52,12 @@ CommandCost CmdFileIpo(DoCommandFlags flags, uint8_t float_pct)
 		c->public_float_pct = float_pct;
 		c->shares_outstanding = IPO_SHARES_OUTSTANDING;
 		c->share_price = eligibility.valuation / IPO_SHARES_OUTSTANDING;
-		SetWindowDirty(WC_FINANCES, c->index);
+		SetWindowDirty(WindowClass::Finances, c->index);
 		AddNewsItem(GetEncodedString(STR_NEWS_COMPANY_IPO, c->index, float_pct, proceeds), NewsType::Economy, NewsStyle::Normal, {});
 	}
 
 	/* Negative cost: the framework credits the IPO proceeds to the company. */
-	return CommandCost(EXPENSES_OTHER, -proceeds);
+	return CommandCost(ExpensesType::Other, -proceeds);
 }
 
 /**
@@ -75,12 +75,12 @@ CommandCost CmdIssueDividend(DoCommandFlags flags, Money amount)
 	if (amount <= 0 || amount > IPO_MIN_VALUATION * 100) return CMD_ERROR;
 
 	if (flags.Test(DoCommandFlag::Execute)) {
-		SetWindowDirty(WC_FINANCES, c->index);
+		SetWindowDirty(WindowClass::Finances, c->index);
 		AddNewsItem(GetEncodedString(STR_NEWS_DIVIDEND_PAID, c->index, amount), NewsType::Economy, NewsStyle::Normal, {});
 	}
 
 	/* The framework charges the amount and refuses it when unaffordable. */
-	return CommandCost(EXPENSES_OTHER, amount);
+	return CommandCost(ExpensesType::Other, amount);
 }
 
 /**
@@ -101,7 +101,7 @@ CommandCost CmdSetDividendPolicy(DoCommandFlags flags, uint8_t percent)
 
 	if (flags.Test(DoCommandFlag::Execute)) {
 		c->dividend_policy = percent;
-		SetWindowDirty(WC_FINANCES, c->index);
+		SetWindowDirty(WindowClass::Finances, c->index);
 	}
 
 	return CommandCost();

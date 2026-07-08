@@ -19,7 +19,7 @@ using HouseID = uint16_t;
 
 CommandCost CmdPlacePlayerHouse(DoCommandFlags flags, TileIndex tile, TownZone zone);
 
-DEF_CMD_TRAIT(CMD_PLACE_PLAYER_HOUSE, CmdPlacePlayerHouse, {}, CommandType::LandscapeConstruction)
+DEF_CMD_TRAIT(Commands::PlacePlayerHouse, CmdPlacePlayerHouse, {}, CommandType::LandscapeConstruction)
 
 /* Bridge into town_cmd.cpp's static house construction path; defined there (tagged CITYSIM). */
 void BuildPlayerHouse(Town *t, TileIndex tile, const HouseSpec *hs, HouseID house, uint8_t random_bits);

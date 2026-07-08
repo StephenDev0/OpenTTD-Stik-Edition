@@ -286,7 +286,7 @@ static const SpriteGroup *GetCallbackResultGroup(uint16_t value)
 
 	/* Result value is not present, so make it and add to cache. */
 	assert(CallbackResultSpriteGroup::CanAllocateItem());
-	const SpriteGroup *group = new CallbackResultSpriteGroup(value);
+	const SpriteGroup *group = CallbackResultSpriteGroup::Create(value);
 	it = _cached_callback_groups.emplace(it, value, group->index);
 	return group;
 }
@@ -330,7 +330,7 @@ static const SpriteGroup *CreateGroupFromGroupID(GrfSpecFeature feature, uint8_t
 	assert(spriteset_start + num_sprites <= _cur_gps.spriteid);
 
 	assert(ResultSpriteGroup::CanAllocateItem());
-	return new ResultSpriteGroup(spriteset_start, num_sprites);
+	return ResultSpriteGroup::Create(spriteset_start, num_sprites);
 }
 
 /* Action 0x02 */
@@ -349,7 +349,7 @@ static void NewSpriteGroup(ByteReader &buf)
 	const SpriteGroup *act_group = nullptr;
 
 	GrfSpecFeature feature{buf.ReadByte()};
-	if (feature >= GSF_END) {
+	if (feature >= GrfSpecFeature::End) {
 		GrfMsg(1, "NewSpriteGroup: Unsupported feature 0x{:02X}, skipping", feature);
 		return;
 	}
@@ -374,7 +374,7 @@ static void NewSpriteGroup(ByteReader &buf)
 			uint8_t varsize;
 
 			assert(DeterministicSpriteGroup::CanAllocateItem());
-			DeterministicSpriteGroup *group = new DeterministicSpriteGroup();
+			DeterministicSpriteGroup *group = DeterministicSpriteGroup::Create();
 			group->nfo_line = _cur_gps.nfo_line;
 			act_group = group;
 			group->var_scope = HasBit(type, 1) ? VSG_SCOPE_PARENT : VSG_SCOPE_SELF;
@@ -494,13 +494,13 @@ static void NewSpriteGroup(ByteReader &buf)
 		case 0x84: // Relative scope
 		{
 			assert(RandomizedSpriteGroup::CanAllocateItem());
-			RandomizedSpriteGroup *group = new RandomizedSpriteGroup();
+			RandomizedSpriteGroup *group = RandomizedSpriteGroup::Create();
 			group->nfo_line = _cur_gps.nfo_line;
 			act_group = group;
 			group->var_scope = HasBit(type, 1) ? VSG_SCOPE_PARENT : VSG_SCOPE_SELF;
 
 			if (HasBit(type, 2)) {
-				if (feature <= GSF_AIRCRAFT) group->var_scope = VSG_SCOPE_RELATIVE;
+				if (feature <= GrfSpecFeature::Aircraft) group->var_scope = VSG_SCOPE_RELATIVE;
 				group->count = buf.ReadByte();
 			}
 
@@ -531,18 +531,18 @@ static void NewSpriteGroup(ByteReader &buf)
 			}
 
 			switch (feature) {
-				case GSF_TRAINS:
-				case GSF_ROADVEHICLES:
-				case GSF_SHIPS:
-				case GSF_AIRCRAFT:
-				case GSF_STATIONS:
-				case GSF_CANALS:
-				case GSF_CARGOES:
-				case GSF_AIRPORTS:
-				case GSF_RAILTYPES:
-				case GSF_ROADTYPES:
-				case GSF_TRAMTYPES:
-				case GSF_BADGES:
+				case GrfSpecFeature::Trains:
+				case GrfSpecFeature::RoadVehicles:
+				case GrfSpecFeature::Ships:
+				case GrfSpecFeature::Aircraft:
+				case GrfSpecFeature::Stations:
+				case GrfSpecFeature::Canals:
+				case GrfSpecFeature::Cargoes:
+				case GrfSpecFeature::Airports:
+				case GrfSpecFeature::RailTypes:
+				case GrfSpecFeature::RoadTypes:
+				case GrfSpecFeature::TramTypes:
+				case GrfSpecFeature::Badges:
 				{
 					uint8_t num_loaded  = type;
 					uint8_t num_loading = buf.ReadByte();
@@ -593,7 +593,7 @@ static void NewSpriteGroup(ByteReader &buf)
 					}
 
 					assert(RealSpriteGroup::CanAllocateItem());
-					RealSpriteGroup *group = new RealSpriteGroup();
+					RealSpriteGroup *group = RealSpriteGroup::Create();
 					group->nfo_line = _cur_gps.nfo_line;
 					act_group = group;
 
@@ -614,15 +614,15 @@ static void NewSpriteGroup(ByteReader &buf)
 					break;
 				}
 
-				case GSF_HOUSES:
-				case GSF_AIRPORTTILES:
-				case GSF_OBJECTS:
-				case GSF_INDUSTRYTILES:
-				case GSF_ROADSTOPS: {
+				case GrfSpecFeature::Houses:
+				case GrfSpecFeature::AirportTiles:
+				case GrfSpecFeature::Objects:
+				case GrfSpecFeature::IndustryTiles:
+				case GrfSpecFeature::RoadStops: {
 					uint8_t num_building_sprites = std::max((uint8_t)1, type);
 
 					assert(TileLayoutSpriteGroup::CanAllocateItem());
-					TileLayoutSpriteGroup *group = new TileLayoutSpriteGroup();
+					TileLayoutSpriteGroup *group = TileLayoutSpriteGroup::Create();
 					group->nfo_line = _cur_gps.nfo_line;
 					act_group = group;
 
@@ -631,14 +631,14 @@ static void NewSpriteGroup(ByteReader &buf)
 					break;
 				}
 
-				case GSF_INDUSTRIES: {
+				case GrfSpecFeature::Industries: {
 					if (type > 2) {
 						GrfMsg(1, "NewSpriteGroup: Unsupported industry production version {}, skipping", type);
 						break;
 					}
 
 					assert(IndustryProductionSpriteGroup::CanAllocateItem());
-					IndustryProductionSpriteGroup *group = new IndustryProductionSpriteGroup();
+					IndustryProductionSpriteGroup *group = IndustryProductionSpriteGroup::Create();
 					group->nfo_line = _cur_gps.nfo_line;
 					act_group = group;
 					group->version = type;
@@ -721,9 +721,15 @@ static void NewSpriteGroup(ByteReader &buf)
 	_cur_gps.spritegroups[setid] = act_group;
 }
 
+/** @copybrief GrfActionHandler::FileScan */
 template <> void GrfActionHandler<0x02>::FileScan(ByteReader &) { }
+/** @copybrief GrfActionHandler::SafetyScan */
 template <> void GrfActionHandler<0x02>::SafetyScan(ByteReader &) { }
+/** @copybrief GrfActionHandler::LabelScan */
 template <> void GrfActionHandler<0x02>::LabelScan(ByteReader &) { }
+/** @copybrief GrfActionHandler::Init */
 template <> void GrfActionHandler<0x02>::Init(ByteReader &) { }
+/** @copybrief GrfActionHandler::Reserve */
 template <> void GrfActionHandler<0x02>::Reserve(ByteReader &) { }
+/** @copydoc GrfActionHandler::Activation */
 template <> void GrfActionHandler<0x02>::Activation(ByteReader &buf) { NewSpriteGroup(buf); }

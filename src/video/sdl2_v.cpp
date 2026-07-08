@@ -120,6 +120,12 @@ static uint FindStartupDisplay(uint startup_display)
 	return 0;
 }
 
+/**
+ * Indicate to the driver the client-size might have changed.
+ * @param w The new width of the window.
+ * @param h The new height of the window.
+ * @param force Whether to force full reallocation, instead of not reallocating when size did not change.
+ */
 void VideoDriver_SDL_Base::ClientSizeChanged(int w, int h, bool force)
 {
 	/* Allocate backing store of the new size. */
@@ -161,7 +167,7 @@ bool VideoDriver_SDL_Base::CreateMainWindow(uint w, uint h, uint flags)
 		return false;
 	}
 
-	std::string icon_path = FioFindFullPath(BASESET_DIR, "openttd.32.bmp");
+	std::string icon_path = FioFindFullPath(Subdirectory::Baseset, "openttd.32.bmp");
 	if (!icon_path.empty()) {
 		/* Give the application an icon */
 		SDL_Surface *icon = SDL_LoadBMP(icon_path.c_str());
@@ -195,13 +201,12 @@ bool VideoDriver_SDL_Base::CreateMainSurface(uint w, uint h, bool resize)
 	return true;
 }
 
-bool VideoDriver_SDL_Base::ClaimMousePointer()
+void VideoDriver_SDL_Base::ClaimMousePointer()
 {
 	/* Emscripten never claims the pointer, so we do not need to change the cursor visibility. */
 #ifndef __EMSCRIPTEN__
 	SDL_ShowCursor(0);
 #endif
-	return true;
 }
 
 /**
@@ -354,8 +359,9 @@ static uint ConvertSdlKeyIntoMy(SDL_Keysym *sym, char32_t *character)
 }
 
 /**
- * Like ConvertSdlKeyIntoMy(), but takes an SDL_Keycode as input
- * instead of an SDL_Keysym.
+ * Convert a SDL_Keycode into our own key codes.
+ * @param kc The SDL key code.
+ * @return OpenTTD's internal key code.
  */
 static uint ConvertSdlKeycodeIntoMy(SDL_Keycode kc)
 {
@@ -621,11 +627,10 @@ void VideoDriver_SDL_Base::InputLoop()
 	this->fast_forward_key_pressed = keys[SDL_SCANCODE_TAB] && (mod & KMOD_ALT) == 0;
 
 	/* Determine which directional keys are down. */
-	_dirkeys =
-		(keys[SDL_SCANCODE_LEFT]  ? 1 : 0) |
-		(keys[SDL_SCANCODE_UP]    ? 2 : 0) |
-		(keys[SDL_SCANCODE_RIGHT] ? 4 : 0) |
-		(keys[SDL_SCANCODE_DOWN]  ? 8 : 0);
+	_dirkeys.Set(DirectionKey::Left, keys[SDL_SCANCODE_LEFT]);
+	_dirkeys.Set(DirectionKey::Up, keys[SDL_SCANCODE_UP]);
+	_dirkeys.Set(DirectionKey::Right, keys[SDL_SCANCODE_RIGHT]);
+	_dirkeys.Set(DirectionKey::Down, keys[SDL_SCANCODE_DOWN]);
 
 	if (old_ctrl_pressed != _ctrl_pressed) HandleCtrlChanged();
 }
@@ -648,7 +653,7 @@ void VideoDriver_SDL_Base::LoopOnce()
 		/* In effect, the game ends here. As emscripten_set_main_loop() caused
 		 * the stack to be unwound, the code after MainLoop() in
 		 * openttd_main() is never executed. */
-		if (_game_mode == GM_BOOTSTRAP) {
+		if (_game_mode == GameMode::Bootstrap) {
 			EM_ASM(if (window["openttd_bootstrap_reload"]) openttd_bootstrap_reload());
 		} else {
 			EM_ASM(if (window["openttd_exit"]) openttd_exit());
@@ -713,7 +718,7 @@ bool VideoDriver_SDL_Base::ToggleFullscreen(bool fullscreen)
 		Debug(driver, 0, "SDL_SetWindowFullscreen() failed: {}", SDL_GetError());
 	}
 
-	InvalidateWindowClassesData(WC_GAME_OPTIONS, 3);
+	InvalidateWindowClassesData(WindowClass::GameOptions, 3);
 	return ret == 0;
 }
 
@@ -753,4 +758,13 @@ void VideoDriver_SDL_Base::UnlockVideoBuffer()
 	}
 
 	this->buffer_locked = false;
+}
+
+void VideoDriver_SDL_Base::SetScreensaverInhibited(bool inhibited)
+{
+	if (inhibited) {
+		SDL_DisableScreenSaver();
+	} else {
+		SDL_EnableScreenSaver();
+	}
 }

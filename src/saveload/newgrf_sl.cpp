@@ -5,7 +5,7 @@
  * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <https://www.gnu.org/licenses/old-licenses/gpl-2.0>.
  */
 
-/** @file newgrf_sl.cpp Code handling saving and loading of newgrf config */
+/** @file newgrf_sl.cpp Code handling saving and loading of newgrf config. */
 
 #include "../stdafx.h"
 
@@ -71,10 +71,10 @@ struct NGRFChunkHandler : ChunkHandler {
 		   SLE_SSTR(GRFConfig, filename,         SLE_STR),
 		    SLE_VAR(GRFConfig, ident.grfid,      SLE_UINT32),
 		    SLE_ARR(GRFConfig, ident.md5sum,     SLE_UINT8,  16),
-		SLE_CONDVAR(GRFConfig, version,          SLE_UINT32, SLV_151, SL_MAX_VERSION),
+		SLE_CONDVAR(GRFConfig, version,          SLE_UINT32, SLV_STORE_NEWGRF_VERSION, SL_MAX_VERSION),
 		   SLEG_ARR("param", param,              SLE_UINT32, std::size(param)),
 		   SLEG_VAR("num_params", num_params,    SLE_UINT8),
-		SLE_CONDVAR(GRFConfig, palette,          SLE_UINT8,  SLV_101, SL_MAX_VERSION),
+		SLE_CONDVAR(GRFConfig, palette,          SLE_UINT8,  SLV_NEWGRF_PALETTE, SL_MAX_VERSION),
 	};
 
 	void SaveParameters(const GRFConfig &config) const
@@ -114,7 +114,7 @@ struct NGRFChunkHandler : ChunkHandler {
 		while (SlIterateArray() != -1) {
 			auto c = std::make_unique<GRFConfig>();
 			SlObject(c.get(), slt);
-			if (IsSavegameVersionBefore(SLV_101)) c->SetSuitablePalette();
+			if (IsSavegameVersionBefore(SLV_NEWGRF_PALETTE)) c->SetSuitablePalette();
 			this->LoadParameters(*c);
 			AppendToGRFConfigList(grfconfig, std::move(c));
 		}
@@ -124,7 +124,7 @@ struct NGRFChunkHandler : ChunkHandler {
 	{
 		this->LoadCommon(_grfconfig);
 
-		if (_game_mode == GM_MENU) {
+		if (_game_mode == GameMode::Menu) {
 			/* Intro game must not have NewGRF. */
 			if (!_grfconfig.empty()) SlErrorCorrupt("The intro game must not use NewGRF");
 

@@ -37,7 +37,7 @@ void PrepareOldDiffCustom()
 void HandleOldDiffCustom(bool savegame)
 {
 	/* Savegames before v4 didn't have "town_council_tolerance" in savegame yet. */
-	bool has_no_town_council_tolerance = savegame && IsSavegameVersionBefore(SLV_4);
+	bool has_no_town_council_tolerance = savegame && IsSavegameVersionBefore(SLV_TOWN_TOLERANCE_PAUSE_MODE);
 	uint options_to_load = GAME_DIFFICULTY_NUM - (has_no_town_council_tolerance ? 1 : 0);
 
 	if (!savegame) {
@@ -101,6 +101,7 @@ static std::vector<SaveLoad> GetSettingsDesc(const SettingTable &settings, bool 
  * @param settings SettingDesc struct containing all information
  * @param object can be either nullptr in which case we load global variables or
  * a pointer to a struct which is getting saved
+ * @param slct Savegame compatibility mapping table.
  */
 static void LoadSettings(const SettingTable &settings, void *object, const SaveLoadCompatTable &slct)
 {

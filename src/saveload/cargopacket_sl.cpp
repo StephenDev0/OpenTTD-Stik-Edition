@@ -5,7 +5,7 @@
  * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <https://www.gnu.org/licenses/old-licenses/gpl-2.0>.
  */
 
-/** @file cargopacket_sl.cpp Code handling saving and loading of cargo packets */
+/** @file cargopacket_sl.cpp Code handling saving and loading of cargo packets. */
 
 #include "../stdafx.h"
 
@@ -22,7 +22,7 @@
  */
 /* static */ void CargoPacket::AfterLoad()
 {
-	if (IsSavegameVersionBefore(SLV_44)) {
+	if (IsSavegameVersionBefore(SLV_CARGO_SOURCE_TILE)) {
 		/* If we remove a station while cargo from it is still en route, payment calculation will assume
 		 * 0, 0 to be the source of the cargo, resulting in very high payments usually. v->source_xy
 		 * stores the coordinates, preserving them even if the station is removed. However, if a game is loaded
@@ -54,14 +54,14 @@
 		}
 	}
 
-	if (IsSavegameVersionBefore(SLV_120)) {
+	if (IsSavegameVersionBefore(SLV_COMPANY_SERVICE_INTERVALS)) {
 		/* CargoPacket's source should be either StationID::Invalid() or a valid station */
 		for (CargoPacket *cp : CargoPacket::Iterate()) {
 			if (!Station::IsValidID(cp->first_station)) cp->first_station = StationID::Invalid();
 		}
 	}
 
-	if (!IsSavegameVersionBefore(SLV_68)) {
+	if (!IsSavegameVersionBefore(SLV_CARGO_PACKETS)) {
 		/* Only since version 68 we have cargo packets. Savegames from before used
 		 * 'new CargoPacket' + cargolist.Append so their caches are already
 		 * correct and do not need rebuilding. */
@@ -75,7 +75,7 @@
 		}
 	}
 
-	if (IsSavegameVersionBefore(SLV_181)) {
+	if (IsSavegameVersionBefore(SLV_CARGO_RESERVATION)) {
 		for (Vehicle *v : Vehicle::Iterate()) v->cargo.KeepAll();
 	}
 
@@ -134,8 +134,8 @@ SaveLoadTable GetCargoPacketDesc()
 		SLE_CONDVARNAME(CargoPacket, periods_in_transit, "days_in_transit", SLE_UINT16, SLV_MORE_CARGO_AGE, SLV_PERIODS_IN_TRANSIT_RENAME),
 		SLE_CONDVAR(CargoPacket, periods_in_transit, SLE_UINT16, SLV_PERIODS_IN_TRANSIT_RENAME, SL_MAX_VERSION),
 		SLE_VAR(CargoPacket, feeder_share,    SLE_INT64),
-		SLE_CONDVARNAME(CargoPacket, source.type, "source_type", SLE_UINT8, SLV_125, SL_MAX_VERSION),
-		SLE_CONDVARNAME(CargoPacket, source.id, "source_id", SLE_UINT16, SLV_125, SL_MAX_VERSION),
+		SLE_CONDVARNAME(CargoPacket, source.type, "source_type", SLE_UINT8, SLV_REMOVE_SUBSIDY_STATION_BINDING, SL_MAX_VERSION),
+		SLE_CONDVARNAME(CargoPacket, source.id, "source_id", SLE_UINT16, SLV_REMOVE_SUBSIDY_STATION_BINDING, SL_MAX_VERSION),
 		SLE_CONDVAR(CargoPacket, travelled.x, SLE_INT16, SLV_CARGO_TRAVELLED, SL_MAX_VERSION),
 		SLE_CONDVAR(CargoPacket, travelled.y, SLE_INT16, SLV_CARGO_TRAVELLED, SL_MAX_VERSION),
 	};
@@ -162,7 +162,7 @@ struct CAPAChunkHandler : ChunkHandler {
 		int index;
 
 		while ((index = SlIterateArray()) != -1) {
-			CargoPacket *cp = new (CargoPacketID(index)) CargoPacket();
+			CargoPacket *cp = CargoPacket::CreateAtIndex(CargoPacketID(index));
 			SlObject(cp, slt);
 		}
 	}

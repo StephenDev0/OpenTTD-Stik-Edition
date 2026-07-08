@@ -5,7 +5,7 @@
  * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <https://www.gnu.org/licenses/old-licenses/gpl-2.0>.
  */
 
-/** @file subsidy_sl.cpp Code handling saving and loading of subsidies */
+/** @file subsidy_sl.cpp Code handling saving and loading of subsidies. */
 
 #include "../stdafx.h"
 
@@ -20,13 +20,13 @@ static const SaveLoad _subsidies_desc[] = {
 	    SLE_VAR(Subsidy, cargo_type, SLE_UINT8),
 	SLE_CONDVAR(Subsidy, remaining,  SLE_FILE_U8 | SLE_VAR_U16, SL_MIN_VERSION, SLV_CUSTOM_SUBSIDY_DURATION),
 	SLE_CONDVAR(Subsidy, remaining,  SLE_UINT16,                SLV_CUSTOM_SUBSIDY_DURATION, SL_MAX_VERSION),
-	SLE_CONDVAR(Subsidy, awarded,    SLE_UINT8,                                     SLV_125, SL_MAX_VERSION),
-	SLE_CONDVARNAME(Subsidy, src.type, "src_type", SLE_UINT8,                       SLV_125, SL_MAX_VERSION),
-	SLE_CONDVARNAME(Subsidy, dst.type, "dst_type", SLE_UINT8,                       SLV_125, SL_MAX_VERSION),
-	SLE_CONDVARNAME(Subsidy, src.id, "src",  SLE_FILE_U8 | SLE_VAR_U16,             SL_MIN_VERSION, SLV_5),
-	SLE_CONDVARNAME(Subsidy, src.id, "src",  SLE_UINT16,                            SLV_5, SL_MAX_VERSION),
-	SLE_CONDVARNAME(Subsidy, dst.id, "dst",  SLE_FILE_U8 | SLE_VAR_U16,             SL_MIN_VERSION, SLV_5),
-	SLE_CONDVARNAME(Subsidy, dst.id, "dst",  SLE_UINT16,                            SLV_5, SL_MAX_VERSION),
+	SLE_CONDVAR(Subsidy, awarded,    SLE_UINT8,                                     SLV_REMOVE_SUBSIDY_STATION_BINDING, SL_MAX_VERSION),
+	SLE_CONDVARNAME(Subsidy, src.type, "src_type", SLE_UINT8,                       SLV_REMOVE_SUBSIDY_STATION_BINDING, SL_MAX_VERSION),
+	SLE_CONDVARNAME(Subsidy, dst.type, "dst_type", SLE_UINT8,                       SLV_REMOVE_SUBSIDY_STATION_BINDING, SL_MAX_VERSION),
+	SLE_CONDVARNAME(Subsidy, src.id, "src",  SLE_FILE_U8 | SLE_VAR_U16,             SL_MIN_VERSION, SLV_BIG_MAP),
+	SLE_CONDVARNAME(Subsidy, src.id, "src",  SLE_UINT16,                            SLV_BIG_MAP, SL_MAX_VERSION),
+	SLE_CONDVARNAME(Subsidy, dst.id, "dst",  SLE_FILE_U8 | SLE_VAR_U16,             SL_MIN_VERSION, SLV_BIG_MAP),
+	SLE_CONDVARNAME(Subsidy, dst.id, "dst",  SLE_UINT16,                            SLV_BIG_MAP, SL_MAX_VERSION),
 };
 
 struct SUBSChunkHandler : ChunkHandler {
@@ -48,7 +48,7 @@ struct SUBSChunkHandler : ChunkHandler {
 
 		int index;
 		while ((index = SlIterateArray()) != -1) {
-			Subsidy *s = new (SubsidyID(index)) Subsidy();
+			Subsidy *s = Subsidy::CreateAtIndex(SubsidyID(index));
 			SlObject(s, slt);
 		}
 	}

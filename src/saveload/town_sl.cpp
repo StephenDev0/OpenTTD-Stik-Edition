@@ -5,7 +5,7 @@
  * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <https://www.gnu.org/licenses/old-licenses/gpl-2.0>.
  */
 
-/** @file town_sl.cpp Code handling saving and loading of towns and houses */
+/** @file town_sl.cpp Code handling saving and loading of towns and houses. */
 
 #include "../stdafx.h"
 
@@ -37,7 +37,7 @@ void RebuildTownCaches()
 	}
 
 	for (const auto t : Map::Iterate()) {
-		if (!IsTileType(t, MP_HOUSE)) continue;
+		if (!IsTileType(t, TileType::House)) continue;
 
 		HouseID house_id = GetHouseType(t);
 		Town *town = Town::GetByTile(t);
@@ -65,7 +65,7 @@ void RebuildTownCaches()
 void UpdateHousesAndTowns()
 {
 	for (const auto t : Map::Iterate()) {
-		if (!IsTileType(t, MP_HOUSE)) continue;
+		if (!IsTileType(t, TileType::House)) continue;
 
 		HouseID house_id = GetCleanHouseType(t);
 		if (!HouseSpec::Get(house_id)->enabled && house_id >= NEW_HOUSE_OFFSET) {
@@ -78,7 +78,7 @@ void UpdateHousesAndTowns()
 
 	/* Check for cases when a NewGRF has set a wrong house substitute type. */
 	for (const TileIndex &t : Map::Iterate()) {
-		if (!IsTileType(t, MP_HOUSE)) continue;
+		if (!IsTileType(t, TileType::House)) continue;
 
 		HouseID house_type = GetCleanHouseType(t);
 		TileIndex north_tile = t + GetHouseNorthPart(house_type); // modifies 'house_type'!
@@ -87,23 +87,23 @@ void UpdateHousesAndTowns()
 			bool valid_house = true;
 			if (hs->building_flags.Test(BuildingFlag::Size2x1)) {
 				TileIndex tile = t + TileDiffXY(1, 0);
-				if (!IsTileType(tile, MP_HOUSE) || GetCleanHouseType(tile) != house_type + 1) valid_house = false;
+				if (!IsTileType(tile, TileType::House) || GetCleanHouseType(tile) != house_type + 1) valid_house = false;
 			} else if (hs->building_flags.Test(BuildingFlag::Size1x2)) {
 				TileIndex tile = t + TileDiffXY(0, 1);
-				if (!IsTileType(tile, MP_HOUSE) || GetCleanHouseType(tile) != house_type + 1) valid_house = false;
+				if (!IsTileType(tile, TileType::House) || GetCleanHouseType(tile) != house_type + 1) valid_house = false;
 			} else if (hs->building_flags.Test(BuildingFlag::Size2x2)) {
 				TileIndex tile = t + TileDiffXY(0, 1);
-				if (!IsTileType(tile, MP_HOUSE) || GetCleanHouseType(tile) != house_type + 1) valid_house = false;
+				if (!IsTileType(tile, TileType::House) || GetCleanHouseType(tile) != house_type + 1) valid_house = false;
 				tile = t + TileDiffXY(1, 0);
-				if (!IsTileType(tile, MP_HOUSE) || GetCleanHouseType(tile) != house_type + 2) valid_house = false;
+				if (!IsTileType(tile, TileType::House) || GetCleanHouseType(tile) != house_type + 2) valid_house = false;
 				tile = t + TileDiffXY(1, 1);
-				if (!IsTileType(tile, MP_HOUSE) || GetCleanHouseType(tile) != house_type + 3) valid_house = false;
+				if (!IsTileType(tile, TileType::House) || GetCleanHouseType(tile) != house_type + 3) valid_house = false;
 			}
 			/* If not all tiles of this house are present remove the house.
 			 * The other tiles will get removed later in this loop because
 			 * their north tile is not the correct type anymore. */
 			if (!valid_house) DoClearSquare(t);
-		} else if (!IsTileType(north_tile, MP_HOUSE) || GetCleanHouseType(north_tile) != house_type) {
+		} else if (!IsTileType(north_tile, TileType::House) || GetCleanHouseType(north_tile) != house_type) {
 			/* This tile should be part of a multi-tile building but the
 			 * north tile of this house isn't on the map. */
 			DoClearSquare(t);
@@ -117,10 +117,10 @@ void UpdateHousesAndTowns()
 class SlTownOldSupplied : public DefaultSaveLoadHandler<SlTownOldSupplied, Town> {
 public:
 	static inline const SaveLoad description[] = {
-		SLE_CONDVAR(TransportedCargoStat<uint32_t>, old_max, SLE_UINT32, SLV_165, SL_MAX_VERSION),
-		SLE_CONDVAR(TransportedCargoStat<uint32_t>, new_max, SLE_UINT32, SLV_165, SL_MAX_VERSION),
-		SLE_CONDVAR(TransportedCargoStat<uint32_t>, old_act, SLE_UINT32, SLV_165, SL_MAX_VERSION),
-		SLE_CONDVAR(TransportedCargoStat<uint32_t>, new_act, SLE_UINT32, SLV_165, SL_MAX_VERSION),
+		SLE_CONDVAR(TransportedCargoStat<uint32_t>, old_max, SLE_UINT32, SLV_SCRIPT_TOWN_GROWTH, SL_MAX_VERSION),
+		SLE_CONDVAR(TransportedCargoStat<uint32_t>, new_max, SLE_UINT32, SLV_SCRIPT_TOWN_GROWTH, SL_MAX_VERSION),
+		SLE_CONDVAR(TransportedCargoStat<uint32_t>, old_act, SLE_UINT32, SLV_SCRIPT_TOWN_GROWTH, SL_MAX_VERSION),
+		SLE_CONDVAR(TransportedCargoStat<uint32_t>, new_act, SLE_UINT32, SLV_SCRIPT_TOWN_GROWTH, SL_MAX_VERSION),
 	};
 	static inline const SaveLoadCompatTable compat_description = _town_supplied_sl_compat;
 
@@ -194,13 +194,57 @@ public:
 	std::vector<Town::SuppliedCargo> &GetVector(Town *t) const override { return t->supplied; }
 };
 
+/** Saveload handler for town accepted cargo history entries. */
+class SlTownAcceptedHistory : public DefaultSaveLoadHandler<SlTownAcceptedHistory, Town::AcceptedCargo> {
+public:
+	/** Saveload description for handler. */
+	static inline const SaveLoad description[] = {
+		 SLE_VAR(Town::AcceptedHistory, accepted, SLE_UINT32),
+	};
+	/** Compatibility saveload description for handler. */
+	static inline const SaveLoadCompatTable compat_description = {};
+
+	void Save(Town::AcceptedCargo *p) const override
+	{
+		SlSetStructListLength(p->history.size());
+
+		for (auto &h : p->history) {
+			SlObject(&h, this->GetDescription());
+		}
+	}
+
+	void Load(Town::AcceptedCargo *p) const override
+	{
+		size_t len = SlGetStructListLength(p->history.size());
+
+		for (auto &h : p->history) {
+			if (--len > p->history.size()) break; // unsigned so wraps after hitting zero.
+			SlObject(&h, this->GetLoadDescription());
+		}
+	}
+};
+
+/** Saveload handler for town accepted cargo history. */
+class SlTownAccepted : public VectorSaveLoadHandler<SlTownAccepted, Town, Town::AcceptedCargo> {
+public:
+	/** Saveload description for handler. */
+	inline static const SaveLoad description[] = {
+		SLE_VAR(Town::AcceptedCargo, cargo, SLE_UINT8),
+		SLEG_STRUCTLIST("history", SlTownAcceptedHistory),
+	};
+	/** Compatibility saveload description for handler. */
+	inline const static SaveLoadCompatTable compat_description = {};
+
+	std::vector<Town::AcceptedCargo> &GetVector(Town *t) const override { return t->accepted; }
+};
+
 class SlTownReceived : public DefaultSaveLoadHandler<SlTownReceived, Town> {
 public:
 	static inline const SaveLoad description[] = {
-		SLE_CONDVAR(TransportedCargoStat<uint16_t>, old_max, SLE_UINT16, SLV_165, SL_MAX_VERSION),
-		SLE_CONDVAR(TransportedCargoStat<uint16_t>, new_max, SLE_UINT16, SLV_165, SL_MAX_VERSION),
-		SLE_CONDVAR(TransportedCargoStat<uint16_t>, old_act, SLE_UINT16, SLV_165, SL_MAX_VERSION),
-		SLE_CONDVAR(TransportedCargoStat<uint16_t>, new_act, SLE_UINT16, SLV_165, SL_MAX_VERSION),
+		SLE_CONDVAR(TransportedCargoStat<uint16_t>, old_max, SLE_UINT16, SLV_SCRIPT_TOWN_GROWTH, SL_MAX_VERSION),
+		SLE_CONDVAR(TransportedCargoStat<uint16_t>, new_max, SLE_UINT16, SLV_SCRIPT_TOWN_GROWTH, SL_MAX_VERSION),
+		SLE_CONDVAR(TransportedCargoStat<uint16_t>, old_act, SLE_UINT16, SLV_SCRIPT_TOWN_GROWTH, SL_MAX_VERSION),
+		SLE_CONDVAR(TransportedCargoStat<uint16_t>, new_act, SLE_UINT16, SLV_SCRIPT_TOWN_GROWTH, SL_MAX_VERSION),
 	};
 	static inline const SaveLoadCompatTable compat_description = _town_received_sl_compat;
 
@@ -214,9 +258,9 @@ public:
 
 	void Load(Town *t) const override
 	{
-		size_t length = IsSavegameVersionBefore(SLV_SAVELOAD_LIST_LENGTH) ? static_cast<size_t>(TAE_END) : SlGetStructListLength(TAE_END);
+		size_t length = IsSavegameVersionBefore(SLV_SAVELOAD_LIST_LENGTH) ? to_underlying(TownAcceptanceEffect::End) : SlGetStructListLength(to_underlying(TownAcceptanceEffect::End));
 		for (size_t i = 0; i < length; i++) {
-			SlObject(&t->received[i], this->GetLoadDescription());
+			SlObject(&t->received[static_cast<TownAcceptanceEffect>(i)], this->GetLoadDescription());
 		}
 	}
 };
@@ -252,76 +296,77 @@ static std::array<Town::SuppliedHistory, 2> _old_pass_supplied{};
 static std::array<Town::SuppliedHistory, 2> _old_mail_supplied{};
 
 static const SaveLoad _town_desc[] = {
-	SLE_CONDVAR(Town, xy,                    SLE_FILE_U16 | SLE_VAR_U32, SL_MIN_VERSION, SLV_6),
-	SLE_CONDVAR(Town, xy,                    SLE_UINT32,                 SLV_6, SL_MAX_VERSION),
+	SLE_CONDVAR(Town, xy,                    SLE_FILE_U16 | SLE_VAR_U32, SL_MIN_VERSION, SLV_MULTIPLE_ROAD_STOPS),
+	SLE_CONDVAR(Town, xy,                    SLE_UINT32,                 SLV_MULTIPLE_ROAD_STOPS, SL_MAX_VERSION),
 
-	SLE_CONDVAR(Town, townnamegrfid,         SLE_UINT32, SLV_66, SL_MAX_VERSION),
+	SLE_CONDVAR(Town, townnamegrfid,         SLE_UINT32, SLV_NEWGRF_TOWN_NAMES, SL_MAX_VERSION),
 	    SLE_VAR(Town, townnametype,          SLE_UINT16),
 	    SLE_VAR(Town, townnameparts,         SLE_UINT32),
-	SLE_CONDSSTR(Town, name,                 SLE_STR | SLF_ALLOW_CONTROL, SLV_84, SL_MAX_VERSION),
+	SLE_CONDSSTR(Town, name,                 SLE_STR | SLF_ALLOW_CONTROL, SLV_REPLACE_CUSTOM_NAME_ARRAY, SL_MAX_VERSION),
 
 	    SLE_VAR(Town, flags,                 SLE_UINT8),
-	SLE_CONDVAR(Town, statues,               SLE_FILE_U8  | SLE_VAR_U16, SL_MIN_VERSION, SLV_104),
-	SLE_CONDVAR(Town, statues,               SLE_UINT16,               SLV_104, SL_MAX_VERSION),
+	SLE_CONDVAR(Town, statues,               SLE_FILE_U8  | SLE_VAR_U16, SL_MIN_VERSION, SLV_MORE_COMPANIES),
+	SLE_CONDVAR(Town, statues,               SLE_UINT16,               SLV_MORE_COMPANIES, SL_MAX_VERSION),
 
-	SLE_CONDVAR(Town, have_ratings,          SLE_FILE_U8  | SLE_VAR_U16, SL_MIN_VERSION, SLV_104),
-	SLE_CONDVAR(Town, have_ratings,          SLE_UINT16,               SLV_104, SL_MAX_VERSION),
-	SLE_CONDARR(Town, ratings,               SLE_INT16, 8,               SL_MIN_VERSION, SLV_104),
-	SLE_CONDARR(Town, ratings,               SLE_INT16, MAX_COMPANIES, SLV_104, SL_MAX_VERSION),
-	SLE_CONDARR(Town, unwanted,              SLE_INT8,  8,               SLV_4, SLV_104),
-	SLE_CONDARR(Town, unwanted,              SLE_INT8,  MAX_COMPANIES, SLV_104, SL_MAX_VERSION),
+	SLE_CONDVAR(Town, have_ratings,          SLE_FILE_U8  | SLE_VAR_U16, SL_MIN_VERSION, SLV_MORE_COMPANIES),
+	SLE_CONDVAR(Town, have_ratings,          SLE_UINT16,               SLV_MORE_COMPANIES, SL_MAX_VERSION),
+	SLE_CONDARR(Town, ratings,               SLE_INT16, 8,               SL_MIN_VERSION, SLV_MORE_COMPANIES),
+	SLE_CONDARR(Town, ratings,               SLE_INT16, MAX_COMPANIES, SLV_MORE_COMPANIES, SL_MAX_VERSION),
+	SLE_CONDARR(Town, unwanted,              SLE_INT8,  8,               SLV_TOWN_TOLERANCE_PAUSE_MODE, SLV_MORE_COMPANIES),
+	SLE_CONDARR(Town, unwanted,              SLE_INT8,  MAX_COMPANIES, SLV_MORE_COMPANIES, SL_MAX_VERSION),
 
 	/* Slots 0 and 2 are passengers and mail respectively for old saves. */
-	SLEG_CONDVAR("supplied[CT_PASSENGERS].old_max", _old_pass_supplied[LAST_MONTH].production, SLE_FILE_U16 | SLE_VAR_U32, SL_MIN_VERSION, SLV_9),
-	SLEG_CONDVAR("supplied[CT_PASSENGERS].old_max", _old_pass_supplied[LAST_MONTH].production, SLE_UINT32,                 SLV_9, SLV_165),
-	SLEG_CONDVAR(      "supplied[CT_MAIL].old_max", _old_mail_supplied[LAST_MONTH].production, SLE_FILE_U16 | SLE_VAR_U32, SL_MIN_VERSION, SLV_9),
-	SLEG_CONDVAR(      "supplied[CT_MAIL].old_max", _old_mail_supplied[LAST_MONTH].production, SLE_UINT32,                 SLV_9, SLV_165),
-	SLEG_CONDVAR("supplied[CT_PASSENGERS].new_max", _old_pass_supplied[THIS_MONTH].production, SLE_FILE_U16 | SLE_VAR_U32, SL_MIN_VERSION, SLV_9),
-	SLEG_CONDVAR("supplied[CT_PASSENGERS].new_max", _old_pass_supplied[THIS_MONTH].production, SLE_UINT32,                 SLV_9, SLV_165),
-	SLEG_CONDVAR(      "supplied[CT_MAIL].new_max", _old_mail_supplied[THIS_MONTH].production, SLE_FILE_U16 | SLE_VAR_U32, SL_MIN_VERSION, SLV_9),
-	SLEG_CONDVAR(      "supplied[CT_MAIL].new_max", _old_mail_supplied[THIS_MONTH].production, SLE_UINT32,                 SLV_9, SLV_165),
-	SLEG_CONDVAR("supplied[CT_PASSENGERS].old_act", _old_pass_supplied[LAST_MONTH].transported, SLE_FILE_U16 | SLE_VAR_U32, SL_MIN_VERSION, SLV_9),
-	SLEG_CONDVAR("supplied[CT_PASSENGERS].old_act", _old_pass_supplied[LAST_MONTH].transported, SLE_UINT32,                 SLV_9, SLV_165),
-	SLEG_CONDVAR(      "supplied[CT_MAIL].old_act", _old_mail_supplied[LAST_MONTH].transported, SLE_FILE_U16 | SLE_VAR_U32, SL_MIN_VERSION, SLV_9),
-	SLEG_CONDVAR(      "supplied[CT_MAIL].old_act", _old_mail_supplied[LAST_MONTH].transported, SLE_UINT32,                 SLV_9, SLV_165),
-	SLEG_CONDVAR("supplied[CT_PASSENGERS].new_act", _old_pass_supplied[THIS_MONTH].transported, SLE_FILE_U16 | SLE_VAR_U32, SL_MIN_VERSION, SLV_9),
-	SLEG_CONDVAR("supplied[CT_PASSENGERS].new_act", _old_pass_supplied[THIS_MONTH].transported, SLE_UINT32,                 SLV_9, SLV_165),
-	SLEG_CONDVAR(      "supplied[CT_MAIL].new_act", _old_mail_supplied[THIS_MONTH].transported, SLE_FILE_U16 | SLE_VAR_U32, SL_MIN_VERSION, SLV_9),
-	SLEG_CONDVAR(      "supplied[CT_MAIL].new_act", _old_mail_supplied[THIS_MONTH].transported, SLE_UINT32,                 SLV_9, SLV_165),
+	SLEG_CONDVAR("supplied[CT_PASSENGERS].old_max", _old_pass_supplied[LAST_MONTH].production, SLE_FILE_U16 | SLE_VAR_U32, SL_MIN_VERSION, SLV_LARGER_TOWN_CARGO_STATISTICS),
+	SLEG_CONDVAR("supplied[CT_PASSENGERS].old_max", _old_pass_supplied[LAST_MONTH].production, SLE_UINT32,                 SLV_LARGER_TOWN_CARGO_STATISTICS, SLV_SCRIPT_TOWN_GROWTH),
+	SLEG_CONDVAR(      "supplied[CT_MAIL].old_max", _old_mail_supplied[LAST_MONTH].production, SLE_FILE_U16 | SLE_VAR_U32, SL_MIN_VERSION, SLV_LARGER_TOWN_CARGO_STATISTICS),
+	SLEG_CONDVAR(      "supplied[CT_MAIL].old_max", _old_mail_supplied[LAST_MONTH].production, SLE_UINT32,                 SLV_LARGER_TOWN_CARGO_STATISTICS, SLV_SCRIPT_TOWN_GROWTH),
+	SLEG_CONDVAR("supplied[CT_PASSENGERS].new_max", _old_pass_supplied[THIS_MONTH].production, SLE_FILE_U16 | SLE_VAR_U32, SL_MIN_VERSION, SLV_LARGER_TOWN_CARGO_STATISTICS),
+	SLEG_CONDVAR("supplied[CT_PASSENGERS].new_max", _old_pass_supplied[THIS_MONTH].production, SLE_UINT32,                 SLV_LARGER_TOWN_CARGO_STATISTICS, SLV_SCRIPT_TOWN_GROWTH),
+	SLEG_CONDVAR(      "supplied[CT_MAIL].new_max", _old_mail_supplied[THIS_MONTH].production, SLE_FILE_U16 | SLE_VAR_U32, SL_MIN_VERSION, SLV_LARGER_TOWN_CARGO_STATISTICS),
+	SLEG_CONDVAR(      "supplied[CT_MAIL].new_max", _old_mail_supplied[THIS_MONTH].production, SLE_UINT32,                 SLV_LARGER_TOWN_CARGO_STATISTICS, SLV_SCRIPT_TOWN_GROWTH),
+	SLEG_CONDVAR("supplied[CT_PASSENGERS].old_act", _old_pass_supplied[LAST_MONTH].transported, SLE_FILE_U16 | SLE_VAR_U32, SL_MIN_VERSION, SLV_LARGER_TOWN_CARGO_STATISTICS),
+	SLEG_CONDVAR("supplied[CT_PASSENGERS].old_act", _old_pass_supplied[LAST_MONTH].transported, SLE_UINT32,                 SLV_LARGER_TOWN_CARGO_STATISTICS, SLV_SCRIPT_TOWN_GROWTH),
+	SLEG_CONDVAR(      "supplied[CT_MAIL].old_act", _old_mail_supplied[LAST_MONTH].transported, SLE_FILE_U16 | SLE_VAR_U32, SL_MIN_VERSION, SLV_LARGER_TOWN_CARGO_STATISTICS),
+	SLEG_CONDVAR(      "supplied[CT_MAIL].old_act", _old_mail_supplied[LAST_MONTH].transported, SLE_UINT32,                 SLV_LARGER_TOWN_CARGO_STATISTICS, SLV_SCRIPT_TOWN_GROWTH),
+	SLEG_CONDVAR("supplied[CT_PASSENGERS].new_act", _old_pass_supplied[THIS_MONTH].transported, SLE_FILE_U16 | SLE_VAR_U32, SL_MIN_VERSION, SLV_LARGER_TOWN_CARGO_STATISTICS),
+	SLEG_CONDVAR("supplied[CT_PASSENGERS].new_act", _old_pass_supplied[THIS_MONTH].transported, SLE_UINT32,                 SLV_LARGER_TOWN_CARGO_STATISTICS, SLV_SCRIPT_TOWN_GROWTH),
+	SLEG_CONDVAR(      "supplied[CT_MAIL].new_act", _old_mail_supplied[THIS_MONTH].transported, SLE_FILE_U16 | SLE_VAR_U32, SL_MIN_VERSION, SLV_LARGER_TOWN_CARGO_STATISTICS),
+	SLEG_CONDVAR(      "supplied[CT_MAIL].new_act", _old_mail_supplied[THIS_MONTH].transported, SLE_UINT32,                 SLV_LARGER_TOWN_CARGO_STATISTICS, SLV_SCRIPT_TOWN_GROWTH),
 
-	SLE_CONDVARNAME(Town, received[TAE_FOOD].old_act,  "received[TE_FOOD].old_act",  SLE_UINT16,                 SL_MIN_VERSION, SLV_165),
-	SLE_CONDVARNAME(Town, received[TAE_WATER].old_act, "received[TE_WATER].old_act", SLE_UINT16,                 SL_MIN_VERSION, SLV_165),
-	SLE_CONDVARNAME(Town, received[TAE_FOOD].new_act,  "received[TE_FOOD].new_act",  SLE_UINT16,                 SL_MIN_VERSION, SLV_165),
-	SLE_CONDVARNAME(Town, received[TAE_WATER].new_act, "received[TE_WATER].new_act", SLE_UINT16,                 SL_MIN_VERSION, SLV_165),
+	SLE_CONDVARNAME(Town, received[TownAcceptanceEffect::Food].old_act,  "received[TE_FOOD].old_act",  SLE_UINT16,                 SL_MIN_VERSION, SLV_SCRIPT_TOWN_GROWTH),
+	SLE_CONDVARNAME(Town, received[TownAcceptanceEffect::Water].old_act, "received[TE_WATER].old_act", SLE_UINT16,                 SL_MIN_VERSION, SLV_SCRIPT_TOWN_GROWTH),
+	SLE_CONDVARNAME(Town, received[TownAcceptanceEffect::Food].new_act,  "received[TE_FOOD].new_act",  SLE_UINT16,                 SL_MIN_VERSION, SLV_SCRIPT_TOWN_GROWTH),
+	SLE_CONDVARNAME(Town, received[TownAcceptanceEffect::Water].new_act, "received[TE_WATER].new_act", SLE_UINT16,                 SL_MIN_VERSION, SLV_SCRIPT_TOWN_GROWTH),
 
-	SLE_CONDARR(Town, goal, SLE_UINT32, NUM_TAE, SLV_165, SL_MAX_VERSION),
+	SLE_CONDARR(Town, goal, SLE_UINT32, to_underlying(TownAcceptanceEffect::End), SLV_SCRIPT_TOWN_GROWTH, SL_MAX_VERSION),
 
-	SLE_CONDSSTR(Town, text,                 SLE_STR | SLF_ALLOW_CONTROL, SLV_168, SL_MAX_VERSION),
+	SLE_CONDSSTR(Town, text,                 SLE_STR | SLF_ALLOW_CONTROL, SLV_SCRIPT_TOWN_TEXT, SL_MAX_VERSION),
 
-	SLE_CONDVAR(Town, time_until_rebuild,    SLE_FILE_U8 | SLE_VAR_U16,  SL_MIN_VERSION, SLV_54),
-	SLE_CONDVAR(Town, time_until_rebuild,    SLE_UINT16,                SLV_54, SL_MAX_VERSION),
-	SLE_CONDVAR(Town, grow_counter,          SLE_FILE_U8 | SLE_VAR_U16,  SL_MIN_VERSION, SLV_54),
-	SLE_CONDVAR(Town, grow_counter,          SLE_UINT16,                SLV_54, SL_MAX_VERSION),
-	SLE_CONDVAR(Town, growth_rate,           SLE_FILE_U8 | SLE_VAR_I16,  SL_MIN_VERSION, SLV_54),
-	SLE_CONDVAR(Town, growth_rate,           SLE_FILE_I16 | SLE_VAR_U16, SLV_54, SLV_165),
-	SLE_CONDVAR(Town, growth_rate,           SLE_UINT16,                 SLV_165, SL_MAX_VERSION),
+	SLE_CONDVAR(Town, time_until_rebuild,    SLE_FILE_U8 | SLE_VAR_U16,  SL_MIN_VERSION, SLV_TOWN_GROWTH_CONTROL),
+	SLE_CONDVAR(Town, time_until_rebuild,    SLE_UINT16,                SLV_TOWN_GROWTH_CONTROL, SL_MAX_VERSION),
+	SLE_CONDVAR(Town, grow_counter,          SLE_FILE_U8 | SLE_VAR_U16,  SL_MIN_VERSION, SLV_TOWN_GROWTH_CONTROL),
+	SLE_CONDVAR(Town, grow_counter,          SLE_UINT16,                SLV_TOWN_GROWTH_CONTROL, SL_MAX_VERSION),
+	SLE_CONDVAR(Town, growth_rate,           SLE_FILE_U8 | SLE_VAR_I16,  SL_MIN_VERSION, SLV_TOWN_GROWTH_CONTROL),
+	SLE_CONDVAR(Town, growth_rate,           SLE_FILE_I16 | SLE_VAR_U16, SLV_TOWN_GROWTH_CONTROL, SLV_SCRIPT_TOWN_GROWTH),
+	SLE_CONDVAR(Town, growth_rate,           SLE_UINT16,                 SLV_SCRIPT_TOWN_GROWTH, SL_MAX_VERSION),
 
 	    SLE_VAR(Town, fund_buildings_months, SLE_UINT8),
 	    SLE_VAR(Town, road_build_months,     SLE_UINT8),
 
-	SLE_CONDVAR(Town, exclusivity,           SLE_UINT8,                  SLV_2, SL_MAX_VERSION),
-	SLE_CONDVAR(Town, exclusive_counter,     SLE_UINT8,                  SLV_2, SL_MAX_VERSION),
+	SLE_CONDVAR(Town, exclusivity,           SLE_UINT8,                  SLV_VEHICLE_CURRENCY_STATION_CHANGES, SL_MAX_VERSION),
+	SLE_CONDVAR(Town, exclusive_counter,     SLE_UINT8,                  SLV_VEHICLE_CURRENCY_STATION_CHANGES, SL_MAX_VERSION),
 
-	SLE_CONDVAR(Town, larger_town,           SLE_BOOL,                  SLV_56, SL_MAX_VERSION),
-	SLE_CONDVAR(Town, layout,                SLE_UINT8,                SLV_113, SL_MAX_VERSION),
+	SLE_CONDVAR(Town, larger_town,           SLE_BOOL,                  SLV_CITIES, SL_MAX_VERSION),
+	SLE_CONDVAR(Town, layout,                SLE_UINT8,                SLV_ROAD_LAYOUT_PER_TOWN, SL_MAX_VERSION),
 	SLE_CONDVAR(Town, valid_history, SLE_UINT64, SLV_TOWN_SUPPLY_HISTORY, SL_MAX_VERSION),
 
-	SLE_CONDREFVECTOR(Town, psa_list,        REF_STORAGE,              SLV_161, SL_MAX_VERSION),
+	SLE_CONDREFVECTOR(Town, psa_list,        REF_STORAGE,              SLV_PERSISTENT_STORAGE_POOL, SL_MAX_VERSION),
 
-	SLEG_CONDSTRUCTLIST("supplied", SlTownOldSupplied,                 SLV_165, SLV_TOWN_SUPPLY_HISTORY),
+	SLEG_CONDSTRUCTLIST("supplied", SlTownOldSupplied,                 SLV_SCRIPT_TOWN_GROWTH, SLV_TOWN_SUPPLY_HISTORY),
 	SLEG_CONDSTRUCTLIST("supplied", SlTownSupplied,                    SLV_TOWN_SUPPLY_HISTORY, SL_MAX_VERSION),
-	SLEG_CONDSTRUCTLIST("received", SlTownReceived,                    SLV_165, SL_MAX_VERSION),
-	SLEG_CONDSTRUCTLIST("acceptance_matrix", SlTownAcceptanceMatrix,   SLV_166, SLV_REMOVE_TOWN_CARGO_CACHE),
+	SLEG_STRUCTLIST("accepted", SlTownAccepted),
+	SLEG_CONDSTRUCTLIST("received", SlTownReceived,                    SLV_SCRIPT_TOWN_GROWTH, SL_MAX_VERSION),
+	SLEG_CONDSTRUCTLIST("acceptance_matrix", SlTownAcceptanceMatrix,   SLV_INFRASTRUCTURE_MAINTENANCE_COSTS, SLV_REMOVE_TOWN_CARGO_CACHE),
 };
 
 struct HIDSChunkHandler : NewGRFMappingChunkHandler {
@@ -348,15 +393,15 @@ struct CITYChunkHandler : ChunkHandler {
 		int index;
 
 		while ((index = SlIterateArray()) != -1) {
-			Town *t = new (TownID(index)) Town();
+			Town *t = Town::CreateAtIndex(TownID(index));
 			SlObject(t, slt);
 
-			if (IsSavegameVersionBefore(SLV_165)) {
+			if (IsSavegameVersionBefore(SLV_SCRIPT_TOWN_GROWTH)) {
 				/* Passengers and mail were always treated as slots 0 and 2 in older saves. */
-				auto &pass = t->supplied.emplace_back(0);
+				auto &pass = t->supplied.emplace_back(CargoType{0});
 				pass.history[LAST_MONTH] = _old_pass_supplied[LAST_MONTH];
 				pass.history[THIS_MONTH] = _old_pass_supplied[THIS_MONTH];
-				auto &mail = t->supplied.emplace_back(2);
+				auto &mail = t->supplied.emplace_back(CargoType{2});
 				mail.history[LAST_MONTH] = _old_mail_supplied[LAST_MONTH];
 				mail.history[THIS_MONTH] = _old_mail_supplied[THIS_MONTH];
 			}
@@ -373,7 +418,7 @@ struct CITYChunkHandler : ChunkHandler {
 
 	void FixPointers() const override
 	{
-		if (IsSavegameVersionBefore(SLV_161)) return;
+		if (IsSavegameVersionBefore(SLV_PERSISTENT_STORAGE_POOL)) return;
 
 		for (Town *t : Town::Iterate()) {
 			SlObject(t, _town_desc);

@@ -81,7 +81,11 @@ namespace {
 		 */
 		explicit PerformanceData(double expected_rate) : expected_rate(expected_rate) { }
 
-		/** Collect a complete measurement, given start and ending times for a processing block */
+		/**
+		 * Collect a complete measurement, given start and ending times for a processing block.
+		 * @param start_time The start of the measurement.
+		 * @param end_time The end of the measurement.
+		 */
 		void Add(TimingMeasurement start_time, TimingMeasurement end_time)
 		{
 			this->durations[this->next_index] = end_time - start_time;
@@ -92,7 +96,10 @@ namespace {
 			this->num_valid = std::min(NUM_FRAMERATE_POINTS, this->num_valid + 1);
 		}
 
-		/** Begin an accumulation of multiple measurements into a single value, from a given start time */
+		/**
+		 * Begin an accumulation of multiple measurements into a single value, from a given start time.
+		 * @param start_time The start of the measurement.
+		 */
 		void BeginAccumulate(TimingMeasurement start_time)
 		{
 			this->timestamps[this->next_index] = this->acc_timestamp;
@@ -106,13 +113,19 @@ namespace {
 			this->acc_timestamp = start_time;
 		}
 
-		/** Accumulate a period onto the current measurement */
+		/**
+		 * Accumulate a period onto the current measurement.
+		 * @param duration The duration to add.
+		 */
 		void AddAccumulate(TimingMeasurement duration)
 		{
 			this->acc_duration += duration;
 		}
 
-		/** Indicate a pause/expected discontinuity in processing the element */
+		/**
+		 * Indicate a pause/expected discontinuity in processing the element.
+		 * @param start_time The start of the pause..
+		 */
 		void AddPause(TimingMeasurement start_time)
 		{
 			if (this->durations[this->prev_index] != INVALID_DURATION) {
@@ -125,7 +138,11 @@ namespace {
 			}
 		}
 
-		/** Get average cycle processing time over a number of data points */
+		/**
+		 * Get average cycle processing time over a number of data points.
+		 * @param count The number of cycles to process.
+		 * @return The average in milliseconds.
+		 */
 		double GetAverageDurationMilliseconds(int count)
 		{
 			count = std::min(count, this->num_valid);
@@ -135,7 +152,8 @@ namespace {
 
 			/* Sum durations, skipping invalid points */
 			double sumtime = 0;
-			for (int i = first_point; i < first_point + count; i++) {
+			const int last_point = first_point + count;
+			for (int i = first_point; i < last_point; i++) {
 				auto d = this->durations[i % NUM_FRAMERATE_POINTS];
 				if (d != INVALID_DURATION) {
 					sumtime += d;
@@ -149,7 +167,10 @@ namespace {
 			return sumtime * 1000 / count / TIMESTAMP_PRECISION;
 		}
 
-		/** Get current rate of a performance element, based on approximately the past one second of data */
+		/**
+		 * Get current rate of a performance element, based on approximately the past one second of data.
+		 * @return The recent rate of the performance element.
+		 */
 		double GetRate()
 		{
 			/* Start at last recorded point, end at latest when reaching the earliest recorded point */
@@ -232,6 +253,7 @@ namespace {
  * Return a timestamp with \c TIMESTAMP_PRECISION ticks per second precision.
  * The basis of the timestamp is implementation defined, but the value should be steady,
  * so differences can be taken to reliably measure intervals.
+ * @return The current 'time' for performance measurements.
  */
 static TimingMeasurement GetPerformanceTimer()
 {
@@ -258,7 +280,7 @@ PerformanceMeasurer::~PerformanceMeasurer()
 	if (this->elem == PFE_ALLSCRIPTS) {
 		/* Hack to not record scripts total when no scripts are active */
 		bool any_active = _pf_data[PFE_GAMESCRIPT].num_valid > 0;
-		for (uint e = PFE_AI0; e < PFE_MAX; e++) any_active |= _pf_data[e].num_valid > 0;
+		for (PerformanceElement e : EnumRange(PFE_AI0, PFE_MAX)) any_active |= _pf_data[e].num_valid > 0;
 		if (!any_active) {
 			PerformanceMeasurer::SetInactive(PFE_ALLSCRIPTS);
 			return;
@@ -281,13 +303,19 @@ PerformanceMeasurer::~PerformanceMeasurer()
 	_pf_data[this->elem].Add(this->start_time, GetPerformanceTimer());
 }
 
-/** Set the rate of expected cycles per second of a performance element. */
+/**
+ * Set the rate of expected cycles per second of a performance element.
+ * @param rate The new rate.
+ */
 void PerformanceMeasurer::SetExpectedRate(double rate)
 {
 	_pf_data[this->elem].expected_rate = rate;
 }
 
-/** Mark a performance element as not currently in use. */
+/**
+ * Mark a performance element as not currently in use.
+ * @param elem The element to set as unused.
+ */
 /* static */ void PerformanceMeasurer::SetInactive(PerformanceElement elem)
 {
 	_pf_data[elem].num_valid = 0;
@@ -379,33 +407,33 @@ static std::string_view GetAIName(int ai_index)
 /** @hideinitializer */
 static constexpr std::initializer_list<NWidgetPart> _framerate_window_widgets = {
 	NWidget(NWID_HORIZONTAL),
-		NWidget(WWT_CLOSEBOX, COLOUR_GREY),
-		NWidget(WWT_CAPTION, COLOUR_GREY, WID_FRW_CAPTION),
-		NWidget(WWT_SHADEBOX, COLOUR_GREY),
-		NWidget(WWT_STICKYBOX, COLOUR_GREY),
+		NWidget(WWT_CLOSEBOX, Colours::Grey),
+		NWidget(WWT_CAPTION, Colours::Grey, WID_FRW_CAPTION),
+		NWidget(WWT_SHADEBOX, Colours::Grey),
+		NWidget(WWT_STICKYBOX, Colours::Grey),
 	EndContainer(),
-	NWidget(WWT_PANEL, COLOUR_GREY),
+	NWidget(WWT_PANEL, Colours::Grey),
 		NWidget(NWID_VERTICAL), SetPadding(WidgetDimensions::unscaled.frametext), SetPIP(0, WidgetDimensions::unscaled.vsep_normal, 0),
-			NWidget(WWT_TEXT, INVALID_COLOUR, WID_FRW_RATE_GAMELOOP), SetToolTip(STR_FRAMERATE_RATE_GAMELOOP_TOOLTIP), SetFill(1, 0), SetResize(1, 0),
-			NWidget(WWT_TEXT, INVALID_COLOUR, WID_FRW_RATE_DRAWING),  SetToolTip(STR_FRAMERATE_RATE_BLITTER_TOOLTIP), SetFill(1, 0), SetResize(1, 0),
-			NWidget(WWT_TEXT, INVALID_COLOUR, WID_FRW_RATE_FACTOR), SetToolTip(STR_FRAMERATE_SPEED_FACTOR_TOOLTIP), SetFill(1, 0), SetResize(1, 0),
+			NWidget(WWT_TEXT, Colours::Invalid, WID_FRW_RATE_GAMELOOP), SetToolTip(STR_FRAMERATE_RATE_GAMELOOP_TOOLTIP), SetFill(1, 0), SetResize(1, 0),
+			NWidget(WWT_TEXT, Colours::Invalid, WID_FRW_RATE_DRAWING),  SetToolTip(STR_FRAMERATE_RATE_BLITTER_TOOLTIP), SetFill(1, 0), SetResize(1, 0),
+			NWidget(WWT_TEXT, Colours::Invalid, WID_FRW_RATE_FACTOR), SetToolTip(STR_FRAMERATE_SPEED_FACTOR_TOOLTIP), SetFill(1, 0), SetResize(1, 0),
 		EndContainer(),
 	EndContainer(),
 	NWidget(NWID_HORIZONTAL),
-		NWidget(WWT_PANEL, COLOUR_GREY),
+		NWidget(WWT_PANEL, Colours::Grey),
 			NWidget(NWID_VERTICAL), SetPadding(WidgetDimensions::unscaled.frametext), SetPIP(0, WidgetDimensions::unscaled.vsep_wide, 0),
 				NWidget(NWID_HORIZONTAL), SetPIP(0, WidgetDimensions::unscaled.hsep_wide, 0),
-					NWidget(WWT_EMPTY, INVALID_COLOUR, WID_FRW_TIMES_NAMES), SetScrollbar(WID_FRW_SCROLLBAR),
-					NWidget(WWT_EMPTY, INVALID_COLOUR, WID_FRW_TIMES_CURRENT), SetScrollbar(WID_FRW_SCROLLBAR),
-					NWidget(WWT_EMPTY, INVALID_COLOUR, WID_FRW_TIMES_AVERAGE), SetScrollbar(WID_FRW_SCROLLBAR),
-					NWidget(WWT_EMPTY, INVALID_COLOUR, WID_FRW_ALLOCSIZE), SetScrollbar(WID_FRW_SCROLLBAR),
+					NWidget(WWT_EMPTY, Colours::Invalid, WID_FRW_TIMES_NAMES), SetScrollbar(WID_FRW_SCROLLBAR),
+					NWidget(WWT_EMPTY, Colours::Invalid, WID_FRW_TIMES_CURRENT), SetScrollbar(WID_FRW_SCROLLBAR),
+					NWidget(WWT_EMPTY, Colours::Invalid, WID_FRW_TIMES_AVERAGE), SetScrollbar(WID_FRW_SCROLLBAR),
+					NWidget(WWT_EMPTY, Colours::Invalid, WID_FRW_ALLOCSIZE), SetScrollbar(WID_FRW_SCROLLBAR),
 				EndContainer(),
-				NWidget(WWT_TEXT, INVALID_COLOUR, WID_FRW_INFO_DATA_POINTS), SetFill(1, 0), SetResize(1, 0),
+				NWidget(WWT_TEXT, Colours::Invalid, WID_FRW_INFO_DATA_POINTS), SetFill(1, 0), SetResize(1, 0),
 			EndContainer(),
 		EndContainer(),
 		NWidget(NWID_VERTICAL),
-			NWidget(NWID_VSCROLLBAR, COLOUR_GREY, WID_FRW_SCROLLBAR),
-			NWidget(WWT_RESIZEBOX, COLOUR_GREY),
+			NWidget(NWID_VSCROLLBAR, Colours::Grey, WID_FRW_SCROLLBAR),
+			NWidget(WWT_RESIZEBOX, Colours::Grey),
 		EndContainer(),
 	EndContainer(),
 };
@@ -453,7 +481,7 @@ struct FramerateWindow : Window {
 		this->num_displayed = this->num_active;
 
 		/* Window is always initialised to MIN_ELEMENTS height, resize to contain num_displayed */
-		ResizeWindow(this, 0, (std::max(MIN_ELEMENTS, this->num_displayed) - MIN_ELEMENTS) * GetCharacterHeight(FS_NORMAL));
+		ResizeWindow(this, 0, (std::max(MIN_ELEMENTS, this->num_displayed) - MIN_ELEMENTS) * GetCharacterHeight(FontSize::Normal));
 	}
 
 	/** Update the window on a regular interval. */
@@ -472,7 +500,7 @@ struct FramerateWindow : Window {
 		this->rate_drawing.SetRate(_pf_data[PFE_DRAWING].GetRate(), _settings_client.gui.refresh_rate);
 
 		int new_active = 0;
-		for (PerformanceElement e = PFE_FIRST; e < PFE_MAX; e++) {
+		for (PerformanceElement e : EnumRange(PFE_MAX)) {
 			this->times_shortterm[e].SetTime(_pf_data[e].GetAverageDurationMilliseconds(8), MILLISECONDS_PER_TICK);
 			this->times_longterm[e].SetTime(_pf_data[e].GetAverageDurationMilliseconds(NUM_FRAMERATE_POINTS), MILLISECONDS_PER_TICK);
 			if (_pf_data[e].num_valid > 0) {
@@ -529,9 +557,9 @@ struct FramerateWindow : Window {
 
 			case WID_FRW_TIMES_NAMES: {
 				size.width = 0;
-				size.height = GetCharacterHeight(FS_NORMAL) + WidgetDimensions::scaled.vsep_normal + MIN_ELEMENTS * GetCharacterHeight(FS_NORMAL);
+				size.height = GetCharacterHeight(FontSize::Normal) + WidgetDimensions::scaled.vsep_normal + MIN_ELEMENTS * GetCharacterHeight(FontSize::Normal);
 				resize.width = 0;
-				fill.height = resize.height = GetCharacterHeight(FS_NORMAL);
+				fill.height = resize.height = GetCharacterHeight(FontSize::Normal);
 				for (PerformanceElement e : DISPLAY_ORDER_PFE) {
 					if (_pf_data[e].num_valid == 0) continue;
 					Dimension line_size;
@@ -551,30 +579,35 @@ struct FramerateWindow : Window {
 				size = GetStringBoundingBox(STR_FRAMERATE_CURRENT + (widget - WID_FRW_TIMES_CURRENT));
 				Dimension item_size = GetStringBoundingBox(GetString(STR_FRAMERATE_MS_GOOD, GetParamMaxDigits(6), 2));
 				size.width = std::max(size.width, item_size.width);
-				size.height += GetCharacterHeight(FS_NORMAL) * MIN_ELEMENTS + WidgetDimensions::scaled.vsep_normal;
+				size.height += GetCharacterHeight(FontSize::Normal) * MIN_ELEMENTS + WidgetDimensions::scaled.vsep_normal;
 				resize.width = 0;
-				fill.height = resize.height = GetCharacterHeight(FS_NORMAL);
+				fill.height = resize.height = GetCharacterHeight(FontSize::Normal);
 				break;
 			}
 		}
 	}
 
-	/** Render a column of formatted average durations */
+	/**
+	 * Render a column of formatted average durations.
+	 * @param r The bounding box to draw in.
+	 * @param heading_str The header of the column.
+	 * @param values The values to draw.
+	 */
 	void DrawElementTimesColumn(const Rect &r, StringID heading_str, std::span<const CachedDecimal> values) const
 	{
 		const Scrollbar *sb = this->GetScrollbar(WID_FRW_SCROLLBAR);
 		int32_t skip = sb->GetPosition();
 		int drawable = this->num_displayed;
 		int y = r.top;
-		DrawString(r.left, r.right, y, heading_str, TC_FROMSTRING, SA_CENTER, true);
-		y += GetCharacterHeight(FS_NORMAL) + WidgetDimensions::scaled.vsep_normal;
+		DrawString(r.left, r.right, y, heading_str, TextColour::FromString, SA_CENTER, true);
+		y += GetCharacterHeight(FontSize::Normal) + WidgetDimensions::scaled.vsep_normal;
 		for (PerformanceElement e : DISPLAY_ORDER_PFE) {
 			if (_pf_data[e].num_valid == 0) continue;
 			if (skip > 0) {
 				skip--;
 			} else {
-				DrawString(r.left, r.right, y, GetString(values[e].strid, values[e].GetValue(), values[e].GetDecimals()), TC_FROMSTRING, SA_RIGHT | SA_FORCE);
-				y += GetCharacterHeight(FS_NORMAL);
+				DrawString(r.left, r.right, y, GetString(values[e].strid, values[e].GetValue(), values[e].GetDecimals()), TextColour::FromString, SA_RIGHT | SA_FORCE);
+				y += GetCharacterHeight(FontSize::Normal);
 				drawable--;
 				if (drawable == 0) break;
 			}
@@ -587,26 +620,26 @@ struct FramerateWindow : Window {
 		int32_t skip = sb->GetPosition();
 		int drawable = this->num_displayed;
 		int y = r.top;
-		DrawString(r.left, r.right, y, STR_FRAMERATE_MEMORYUSE, TC_FROMSTRING, SA_CENTER, true);
-		y += GetCharacterHeight(FS_NORMAL) + WidgetDimensions::scaled.vsep_normal;
+		DrawString(r.left, r.right, y, STR_FRAMERATE_MEMORYUSE, TextColour::FromString, SA_CENTER, true);
+		y += GetCharacterHeight(FontSize::Normal) + WidgetDimensions::scaled.vsep_normal;
 		for (PerformanceElement e : DISPLAY_ORDER_PFE) {
 			if (_pf_data[e].num_valid == 0) continue;
 			if (skip > 0) {
 				skip--;
 			} else if (e == PFE_GAMESCRIPT || e >= PFE_AI0) {
 				uint64_t value = e == PFE_GAMESCRIPT ? Game::GetInstance()->GetAllocatedMemory() : Company::Get(e - PFE_AI0)->ai_instance->GetAllocatedMemory();
-				DrawString(r.left, r.right, y, GetString(STR_FRAMERATE_BYTES_GOOD, value), TC_FROMSTRING, SA_RIGHT | SA_FORCE);
-				y += GetCharacterHeight(FS_NORMAL);
+				DrawString(r.left, r.right, y, GetString(STR_FRAMERATE_BYTES_GOOD, value), TextColour::FromString, SA_RIGHT | SA_FORCE);
+				y += GetCharacterHeight(FontSize::Normal);
 				drawable--;
 				if (drawable == 0) break;
 			} else if (e == PFE_SOUND) {
-				DrawString(r.left, r.right, y, GetString(STR_FRAMERATE_BYTES_GOOD, GetSoundPoolAllocatedMemory()), TC_FROMSTRING, SA_RIGHT | SA_FORCE);
-				y += GetCharacterHeight(FS_NORMAL);
+				DrawString(r.left, r.right, y, GetString(STR_FRAMERATE_BYTES_GOOD, GetSoundPoolAllocatedMemory()), TextColour::FromString, SA_RIGHT | SA_FORCE);
+				y += GetCharacterHeight(FontSize::Normal);
 				drawable--;
 				if (drawable == 0) break;
 			} else {
 				/* skip non-script */
-				y += GetCharacterHeight(FS_NORMAL);
+				y += GetCharacterHeight(FontSize::Normal);
 				drawable--;
 				if (drawable == 0) break;
 			}
@@ -621,18 +654,18 @@ struct FramerateWindow : Window {
 				const Scrollbar *sb = this->GetScrollbar(WID_FRW_SCROLLBAR);
 				int32_t skip = sb->GetPosition();
 				int drawable = this->num_displayed;
-				int y = r.top + GetCharacterHeight(FS_NORMAL) + WidgetDimensions::scaled.vsep_normal; // first line contains headings in the value columns
+				int y = r.top + GetCharacterHeight(FontSize::Normal) + WidgetDimensions::scaled.vsep_normal; // first line contains headings in the value columns
 				for (PerformanceElement e : DISPLAY_ORDER_PFE) {
 					if (_pf_data[e].num_valid == 0) continue;
 					if (skip > 0) {
 						skip--;
 					} else {
 						if (e < PFE_AI0) {
-							DrawString(r.left, r.right, y, STR_FRAMERATE_GAMELOOP + e, TC_FROMSTRING, SA_LEFT);
+							DrawString(r.left, r.right, y, STR_FRAMERATE_GAMELOOP + e, TextColour::FromString, SA_LEFT);
 						} else {
-							DrawString(r.left, r.right, y, GetString(STR_FRAMERATE_AI, e - PFE_AI0 + 1, GetAIName(e - PFE_AI0)), TC_FROMSTRING, SA_LEFT);
+							DrawString(r.left, r.right, y, GetString(STR_FRAMERATE_AI, e - PFE_AI0 + 1, GetAIName(e - PFE_AI0)), TextColour::FromString, SA_LEFT);
 						}
-						y += GetCharacterHeight(FS_NORMAL);
+						y += GetCharacterHeight(FontSize::Normal);
 						drawable--;
 						if (drawable == 0) break;
 					}
@@ -661,7 +694,7 @@ struct FramerateWindow : Window {
 			case WID_FRW_TIMES_AVERAGE: {
 				/* Open time graph windows when clicking detail measurement lines */
 				const Scrollbar *sb = this->GetScrollbar(WID_FRW_SCROLLBAR);
-				int32_t line = sb->GetScrolledRowFromWidget(pt.y, this, widget, WidgetDimensions::scaled.vsep_normal + GetCharacterHeight(FS_NORMAL));
+				int32_t line = sb->GetScrolledRowFromWidget(pt.y, this, widget, WidgetDimensions::scaled.vsep_normal + GetCharacterHeight(FontSize::Normal));
 				if (line != INT32_MAX) {
 					line++;
 					/* Find the visible line that was clicked */
@@ -681,14 +714,15 @@ struct FramerateWindow : Window {
 	void OnResize() override
 	{
 		auto *wid = this->GetWidget<NWidgetResizeBase>(WID_FRW_TIMES_NAMES);
-		this->num_displayed = (wid->current_y - wid->min_y - WidgetDimensions::scaled.vsep_normal) / GetCharacterHeight(FS_NORMAL) - 1; // subtract 1 for headings
+		this->num_displayed = (wid->current_y - wid->min_y - WidgetDimensions::scaled.vsep_normal) / GetCharacterHeight(FontSize::Normal) - 1; // subtract 1 for headings
 		this->GetScrollbar(WID_FRW_SCROLLBAR)->SetCapacity(this->num_displayed);
 	}
 };
 
+/** Window definition for the frame rate window. */
 static WindowDesc _framerate_display_desc(
-	WDP_AUTO, "framerate_display", 0, 0,
-	WC_FRAMERATE_DISPLAY, WC_NONE,
+	WindowPosition::Automatic, "framerate_display", 0, 0,
+	WindowClass::FramerateDisplay, WindowClass::None,
 	{},
 	_framerate_window_widgets
 );
@@ -697,13 +731,13 @@ static WindowDesc _framerate_display_desc(
 /** @hideinitializer */
 static constexpr std::initializer_list<NWidgetPart> _frametime_graph_window_widgets = {
 	NWidget(NWID_HORIZONTAL),
-		NWidget(WWT_CLOSEBOX, COLOUR_GREY),
-		NWidget(WWT_CAPTION, COLOUR_GREY, WID_FGW_CAPTION), SetTextStyle(TC_WHITE),
-		NWidget(WWT_STICKYBOX, COLOUR_GREY),
+		NWidget(WWT_CLOSEBOX, Colours::Grey),
+		NWidget(WWT_CAPTION, Colours::Grey, WID_FGW_CAPTION), SetTextStyle(TextColour::White),
+		NWidget(WWT_STICKYBOX, Colours::Grey),
 	EndContainer(),
-	NWidget(WWT_PANEL, COLOUR_GREY),
+	NWidget(WWT_PANEL, Colours::Grey),
 		NWidget(NWID_VERTICAL), SetPadding(WidgetDimensions::unscaled.frametext),
-			NWidget(WWT_EMPTY, INVALID_COLOUR, WID_FGW_GRAPH),
+			NWidget(WWT_EMPTY, Colours::Invalid, WID_FGW_GRAPH),
 		EndContainer(),
 	EndContainer(),
 };
@@ -847,7 +881,15 @@ struct FrametimeGraphWindow : Window {
 		this->SetDirty();
 	}
 
-	/** Scale and interpolate a value from a source range into a destination range */
+	/**
+	 * Scale and interpolate a value from a source range into a destination range.
+	 * @param dst_min The minimum value in the destination range.
+	 * @param dst_max The maximum value in the destination range.
+	 * @param src_min The minimum value in the source range.
+	 * @param src_max The maximum value in the source range.
+	 * @param value The value to process.
+	 * @return The rescaled value.
+	 */
 	template <typename T>
 	static inline T Scinterlate(T dst_min, T dst_max, T src_min, T src_max, T value)
 	{
@@ -887,13 +929,13 @@ struct FrametimeGraphWindow : Window {
 				GfxDrawLine(x_zero, y, x_max, y, c_grid);
 				if (division % 2 == 0) {
 					if ((TimingMeasurement)this->vertical_scale > TIMESTAMP_PRECISION) {
-						DrawString(r.left, x_zero - WidgetDimensions::scaled.hsep_normal, y - GetCharacterHeight(FS_SMALL),
+						DrawString(r.left, x_zero - WidgetDimensions::scaled.hsep_normal, y - GetCharacterHeight(FontSize::Small),
 							GetString(STR_FRAMERATE_GRAPH_SECONDS, this->vertical_scale * division / 10 / TIMESTAMP_PRECISION),
-							TC_GREY, SA_RIGHT | SA_FORCE, false, FS_SMALL);
+							TextColour::Grey, SA_RIGHT | SA_FORCE, false, FontSize::Small);
 					} else {
-						DrawString(r.left, x_zero - WidgetDimensions::scaled.hsep_normal, y - GetCharacterHeight(FS_SMALL),
+						DrawString(r.left, x_zero - WidgetDimensions::scaled.hsep_normal, y - GetCharacterHeight(FontSize::Small),
 							GetString(STR_FRAMERATE_GRAPH_MILLISECONDS, this->vertical_scale * division / 10 * 1000 / TIMESTAMP_PRECISION),
-							TC_GREY, SA_RIGHT | SA_FORCE, false, FS_SMALL);
+							TextColour::Grey, SA_RIGHT | SA_FORCE, false, FontSize::Small);
 					}
 				}
 			}
@@ -904,7 +946,7 @@ struct FrametimeGraphWindow : Window {
 				if (division % 2 == 0) {
 					DrawString(x, x_max, y_zero + WidgetDimensions::scaled.vsep_normal,
 						GetString(STR_FRAMERATE_GRAPH_SECONDS, division * horz_div_scl / 2),
-						TC_GREY, SA_LEFT | SA_FORCE, false, FS_SMALL);
+						TextColour::Grey, SA_LEFT | SA_FORCE, false, FontSize::Small);
 				}
 			}
 
@@ -959,23 +1001,24 @@ struct FrametimeGraphWindow : Window {
 
 			/* If the peak value is significantly larger than the average, mark and label it */
 			if (points_drawn > 0 && peak_value > TIMESTAMP_PRECISION / 100 && 2 * peak_value > 3 * value_sum / points_drawn) {
-				TextColour tc_peak = c_peak.ToTextColour();
+				ExtendedTextColour tc_peak{c_peak};
 				GfxFillRect(peak_point.x - 1, peak_point.y - 1, peak_point.x + 1, peak_point.y + 1, c_peak);
 				uint64_t value = peak_value * 1000 / TIMESTAMP_PRECISION;
-				int label_y = std::max(y_max, peak_point.y - GetCharacterHeight(FS_SMALL));
+				int label_y = std::max(y_max, peak_point.y - GetCharacterHeight(FontSize::Small));
 				if (peak_point.x - x_zero > (int)this->graph_size.width / 2) {
-					DrawString(x_zero, peak_point.x - WidgetDimensions::scaled.hsep_normal, label_y, GetString(STR_FRAMERATE_GRAPH_MILLISECONDS, value), tc_peak, SA_RIGHT | SA_FORCE, false, FS_SMALL);
+					DrawString(x_zero, peak_point.x - WidgetDimensions::scaled.hsep_normal, label_y, GetString(STR_FRAMERATE_GRAPH_MILLISECONDS, value), tc_peak, SA_RIGHT | SA_FORCE, false, FontSize::Small);
 				} else {
-					DrawString(peak_point.x + WidgetDimensions::scaled.hsep_normal, x_max, label_y, GetString(STR_FRAMERATE_GRAPH_MILLISECONDS, value), tc_peak, SA_LEFT | SA_FORCE, false, FS_SMALL);
+					DrawString(peak_point.x + WidgetDimensions::scaled.hsep_normal, x_max, label_y, GetString(STR_FRAMERATE_GRAPH_MILLISECONDS, value), tc_peak, SA_LEFT | SA_FORCE, false, FontSize::Small);
 				}
 			}
 		}
 	}
 };
 
+/** Window definition for the frame rate graph window. */
 static WindowDesc _frametime_graph_window_desc(
-	WDP_AUTO, "frametime_graph", 140, 90,
-	WC_FRAMETIME_GRAPH, WC_NONE,
+	WindowPosition::Automatic, "frametime_graph", 140, 90,
+	WindowClass::FrametimeGraph, WindowClass::None,
 	{},
 	_frametime_graph_window_widgets
 );
@@ -988,7 +1031,10 @@ void ShowFramerateWindow()
 	AllocateWindowDescFront<FramerateWindow>(_framerate_display_desc, 0);
 }
 
-/** Open a graph window for a performance element */
+/**
+ * Open a graph window for a performance element.
+ * @param elem The element to show the graph for.
+ */
 void ShowFrametimeGraphWindow(PerformanceElement elem)
 {
 	if (elem < PFE_FIRST || elem >= PFE_MAX) return; // maybe warn?
@@ -1002,7 +1048,7 @@ void ConPrintFramerate()
 	const int count2 = NUM_FRAMERATE_POINTS / 4;
 	const int count3 = NUM_FRAMERATE_POINTS / 1;
 
-	IConsolePrint(TC_SILVER, "Based on num. data points: {} {} {}", count1, count2, count3);
+	IConsolePrint(TextColour::Silver, "Based on num. data points: {} {} {}", count1, count2, count3);
 
 	static const std::array<std::string_view, PFE_MAX> MEASUREMENT_NAMES = {
 		"Game loop",
@@ -1027,14 +1073,14 @@ void ConPrintFramerate()
 	for (const auto &e : { PFE_GAMELOOP, PFE_DRAWING, PFE_VIDEO }) {
 		auto &pf = _pf_data[e];
 		if (pf.num_valid == 0) continue;
-		IConsolePrint(TC_GREEN, "{} rate: {:.2f}fps  (expected: {:.2f}fps)",
+		IConsolePrint(TextColour::Green, "{} rate: {:.2f}fps  (expected: {:.2f}fps)",
 			MEASUREMENT_NAMES[e],
 			pf.GetRate(),
 			pf.expected_rate);
 		printed_anything = true;
 	}
 
-	for (PerformanceElement e = PFE_FIRST; e < PFE_MAX; e++) {
+	for (PerformanceElement e : EnumRange(PFE_MAX)) {
 		auto &pf = _pf_data[e];
 		if (pf.num_valid == 0) continue;
 		std::string_view name;
@@ -1044,7 +1090,7 @@ void ConPrintFramerate()
 			ai_name_buf = fmt::format("AI {} {}", e - PFE_AI0 + 1, GetAIName(e - PFE_AI0));
 			name = ai_name_buf;
 		}
-		IConsolePrint(TC_LIGHT_BLUE, "{} times: {:.2f}ms  {:.2f}ms  {:.2f}ms",
+		IConsolePrint(TextColour::LightBlue, "{} times: {:.2f}ms  {:.2f}ms  {:.2f}ms",
 			name,
 			pf.GetAverageDurationMilliseconds(count1),
 			pf.GetAverageDurationMilliseconds(count2),

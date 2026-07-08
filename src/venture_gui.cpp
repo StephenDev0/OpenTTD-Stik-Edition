@@ -46,7 +46,7 @@ struct VenturesWindow : Window {
 	{
 		if (widget == WID_VC_DETAILS) {
 			size.width = std::max(size.width, GetStringBoundingBox(GetString(STR_VENTURE_DETAIL_ACTIVE, STR_VENTURE_NAME_FIRST, uint16_t{100}, Money{100000}, Money{100000}, Money{100000}, uint8_t{1}, uint8_t{2})).width + WidgetDimensions::scaled.framerect.Horizontal());
-			size.height = GetCharacterHeight(FS_NORMAL) * 3 + WidgetDimensions::scaled.framerect.Vertical();
+			size.height = GetCharacterHeight(FontSize::Normal) * 3 + WidgetDimensions::scaled.framerect.Vertical();
 			return;
 		}
 		if (widget != WID_VC_LIST) return;
@@ -56,7 +56,7 @@ struct VenturesWindow : Window {
 			d = maxdim(d, GetStringBoundingBox(this->GetVentureRowString(v)));
 		}
 		size.width = std::max(size.width, d.width + WidgetDimensions::scaled.framerect.Horizontal());
-		size.height = NUM_VENTURES * GetCharacterHeight(FS_NORMAL) + WidgetDimensions::scaled.framerect.Vertical();
+	size.height = NUM_VENTURES * GetCharacterHeight(FontSize::Normal) + WidgetDimensions::scaled.framerect.Vertical();
 	}
 
 	void DrawWidget(const Rect &r, WidgetID widget) const override
@@ -75,9 +75,9 @@ struct VenturesWindow : Window {
 			Money trade_sell_value = v.state == VentureState::Active ? GetVentureSellValue(v, VENTURE_TRADE_UNIT_BP) : Money{0};
 			Money cost_basis = v.cost_basis[_local_company.base()];
 			DrawString(ir.left, ir.right, ir.top, GetString(STR_VENTURE_DETAIL_ACTIVE, GetVentureNameString(v), GetTotalVentureStakeBp(v) / 100, stake_value, sell_value, cost_basis, v.quarters_in_stage, uint8_t{2}));
-			ir.top += GetCharacterHeight(FS_NORMAL);
+		ir.top += GetCharacterHeight(FontSize::Normal);
 			DrawString(ir.left, ir.right, ir.top, GetString(STR_VENTURE_DETAIL_LIMITS, VENTURE_MAX_COMPANY_STAKE_BP / 100, VENTURE_MAX_TOTAL_STAKE_BP / 100, VENTURE_SELL_PCT));
-			ir.top += GetCharacterHeight(FS_NORMAL);
+		ir.top += GetCharacterHeight(FontSize::Normal);
 			DrawString(ir.left, ir.right, ir.top, GetString(STR_VENTURE_DETAIL_TRADE, GetVentureStakeValue(v, VENTURE_TRADE_UNIT_BP), trade_sell_value));
 			return;
 		}
@@ -88,10 +88,10 @@ struct VenturesWindow : Window {
 		for (uint slot = 0; slot < NUM_VENTURES; slot++) {
 			const Venture &v = _ventures[slot];
 			if (static_cast<int>(slot) == this->selected) {
-				GfxFillRect(ir.left, y, ir.right, y + GetCharacterHeight(FS_NORMAL) - 1, PC_DARK_GREY);
+				GfxFillRect(ir.left, y, ir.right, y + GetCharacterHeight(FontSize::Normal) - 1, PC_DARK_GREY);
 			}
 			DrawString(ir.left, ir.right, y, this->GetVentureRowString(v));
-			y += GetCharacterHeight(FS_NORMAL);
+		y += GetCharacterHeight(FontSize::Normal);
 		}
 	}
 
@@ -110,7 +110,7 @@ struct VenturesWindow : Window {
 		switch (widget) {
 			case WID_VC_LIST: {
 				const NWidgetBase *wid = this->GetWidget<NWidgetBase>(WID_VC_LIST);
-				int row = (pt.y - wid->pos_y - WidgetDimensions::scaled.framerect.top) / GetCharacterHeight(FS_NORMAL);
+		int row = (pt.y - wid->pos_y - WidgetDimensions::scaled.framerect.top) / GetCharacterHeight(FontSize::Normal);
 				this->selected = (row >= 0 && row < static_cast<int>(NUM_VENTURES)) ? row : -1;
 				this->SetDirty();
 				break;
@@ -118,7 +118,7 @@ struct VenturesWindow : Window {
 
 			case WID_VC_BUY:
 				if (this->selected >= 0) {
-					Command<CMD_BUY_VENTURE_STAKE>::Post(STR_ERROR_CAN_T_BUY_STAKE,
+					Command<Commands::BuyVentureStake>::Post(STR_ERROR_CAN_T_BUY_STAKE,
 							static_cast<uint8_t>(this->selected),
 							static_cast<uint16_t>(_ctrl_pressed ? 10 * VENTURE_TRADE_UNIT_BP : VENTURE_TRADE_UNIT_BP));
 				}
@@ -126,7 +126,7 @@ struct VenturesWindow : Window {
 
 			case WID_VC_SELL:
 				if (this->selected >= 0) {
-					Command<CMD_SELL_VENTURE_STAKE>::Post(STR_ERROR_CAN_T_SELL_STAKE,
+					Command<Commands::SellVentureStake>::Post(STR_ERROR_CAN_T_SELL_STAKE,
 							static_cast<uint8_t>(this->selected),
 							static_cast<uint16_t>(_ctrl_pressed ? 10 * VENTURE_TRADE_UNIT_BP : VENTURE_TRADE_UNIT_BP));
 				}
@@ -137,22 +137,22 @@ struct VenturesWindow : Window {
 
 static constexpr std::initializer_list<NWidgetPart> _nested_ventures_widgets = {
 	NWidget(NWID_HORIZONTAL),
-		NWidget(WWT_CLOSEBOX, COLOUR_BROWN),
-		NWidget(WWT_CAPTION, COLOUR_BROWN), SetStringTip(STR_VENTURE_CAPTION, STR_TOOLTIP_WINDOW_TITLE_DRAG_THIS),
-		NWidget(WWT_SHADEBOX, COLOUR_BROWN),
-		NWidget(WWT_STICKYBOX, COLOUR_BROWN),
+		NWidget(WWT_CLOSEBOX, Colours::Brown),
+		NWidget(WWT_CAPTION, Colours::Brown), SetStringTip(STR_VENTURE_CAPTION, STR_TOOLTIP_WINDOW_TITLE_DRAG_THIS),
+		NWidget(WWT_SHADEBOX, Colours::Brown),
+		NWidget(WWT_STICKYBOX, Colours::Brown),
 	EndContainer(),
-	NWidget(WWT_PANEL, COLOUR_BROWN, WID_VC_LIST), SetToolTip(STR_VENTURE_LIST_TOOLTIP), EndContainer(),
-	NWidget(WWT_PANEL, COLOUR_BROWN, WID_VC_DETAILS), EndContainer(),
+	NWidget(WWT_PANEL, Colours::Brown, WID_VC_LIST), SetToolTip(STR_VENTURE_LIST_TOOLTIP), EndContainer(),
+	NWidget(WWT_PANEL, Colours::Brown, WID_VC_DETAILS), EndContainer(),
 	NWidget(NWID_HORIZONTAL, NWidContainerFlag::EqualSize),
-		NWidget(WWT_PUSHTXTBTN, COLOUR_BROWN, WID_VC_BUY), SetFill(1, 0), SetStringTip(STR_VENTURE_BUY_BUTTON, STR_VENTURE_BUY_TOOLTIP),
-		NWidget(WWT_PUSHTXTBTN, COLOUR_BROWN, WID_VC_SELL), SetFill(1, 0), SetStringTip(STR_VENTURE_SELL_BUTTON, STR_VENTURE_SELL_TOOLTIP),
+		NWidget(WWT_PUSHTXTBTN, Colours::Brown, WID_VC_BUY), SetFill(1, 0), SetStringTip(STR_VENTURE_BUY_BUTTON, STR_VENTURE_BUY_TOOLTIP),
+		NWidget(WWT_PUSHTXTBTN, Colours::Brown, WID_VC_SELL), SetFill(1, 0), SetStringTip(STR_VENTURE_SELL_BUTTON, STR_VENTURE_SELL_TOOLTIP),
 	EndContainer(),
 };
 
 static WindowDesc _ventures_desc(
 	WDP_AUTO, "ventures", 0, 0,
-	WC_VENTURE_CAPITAL, WC_NONE,
+	WindowClass::VentureCapital, WindowClass::None,
 	{},
 	_nested_ventures_widgets
 );

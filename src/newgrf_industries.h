@@ -67,22 +67,12 @@ struct IndustriesResolverObject : public ResolverObject {
 	uint32_t GetDebugID() const override;
 };
 
-/** When should the industry(tile) be triggered for random bits? */
-enum IndustryTrigger : uint8_t {
-	/** Triggered each tile loop */
-	INDUSTRY_TRIGGER_TILELOOP_PROCESS = 1,
-	/** Triggered (whole industry) each 256 ticks */
-	INDUSTRY_TRIGGER_256_TICKS        = 2,
-	/** Triggered on cargo delivery */
-	INDUSTRY_TRIGGER_CARGO_DELIVERY   = 4,
-};
-
 /** From where has callback #CBID_INDUSTRY_PROBABILITY been called */
-enum IndustryAvailabilityCallType : uint8_t {
-	IACT_MAPGENERATION,    ///< during random map generation
-	IACT_RANDOMCREATION,   ///< during creation of random ingame industry
-	IACT_USERCREATION,     ///< from the Fund/build window
-	IACT_PROSPECTCREATION, ///< from the Fund/build using prospecting
+enum class IndustryAvailabilityCallType : uint8_t {
+	MapGeneration, ///< during random map generation
+	RandomCreation, ///< during creation of random ingame industry
+	UserCreation, ///< from the Fund/build window
+	ProspectCreation, ///< from the Fund/build using prospecting
 };
 
 /* in newgrf_industry.cpp */

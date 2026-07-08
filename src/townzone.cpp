@@ -72,9 +72,9 @@ StringID GetTownZoneLabel(TownZone zone)
 Money GetTownZoneBuildCost(TownZone zone)
 {
 	switch (zone) {
-		case TownZone::Residential: return std::max<Money>(_price[PR_BUILD_TOWN] / 40, _price[PR_CLEAR_HOUSE] * 2);
-		case TownZone::Commercial:  return std::max<Money>(_price[PR_BUILD_TOWN] / 25, _price[PR_CLEAR_HOUSE] * 3);
-		case TownZone::Industrial:  return _price[PR_BUILD_INDUSTRY];
+		case TownZone::Residential: return std::max<Money>(_price[Price::BuildTown] / 40, _price[Price::ClearHouse] * 2);
+		case TownZone::Commercial:  return std::max<Money>(_price[Price::BuildTown] / 25, _price[Price::ClearHouse] * 3);
+		case TownZone::Industrial:  return _price[Price::BuildIndustry];
 	}
 	NOT_REACHED();
 }
@@ -87,7 +87,7 @@ static uint CountPendingResidentialPopulation(const Town *t)
 	uint pending = 0;
 	for (Tile tile : Map::Iterate()) {
 		TileIndex tile_index = tile;
-		if (!IsTileType(tile_index, MP_HOUSE) || Town::GetByTile(tile_index) != t || IsHouseCompleted(tile_index)) continue;
+		if (!IsTileType(tile_index, TileType::House) || Town::GetByTile(tile_index) != t || IsHouseCompleted(tile_index)) continue;
 
 		const HouseSpec *hs = HouseSpec::Get(GetHouseType(tile_index));
 		if (IsResidentialHouseSpec(*hs)) pending += hs->population;

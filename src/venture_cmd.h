@@ -15,7 +15,7 @@
 CommandCost CmdBuyVentureStake(DoCommandFlags flags, uint8_t slot, uint16_t bp);
 CommandCost CmdSellVentureStake(DoCommandFlags flags, uint8_t slot, uint16_t bp);
 
-DEF_CMD_TRAIT(CMD_BUY_VENTURE_STAKE,  CmdBuyVentureStake,  {}, CommandType::MoneyManagement)
-DEF_CMD_TRAIT(CMD_SELL_VENTURE_STAKE, CmdSellVentureStake, {}, CommandType::MoneyManagement)
+DEF_CMD_TRAIT(Commands::BuyVentureStake,  CmdBuyVentureStake,  {}, CommandType::MoneyManagement)
+DEF_CMD_TRAIT(Commands::SellVentureStake, CmdSellVentureStake, {}, CommandType::MoneyManagement)
 
 #endif /* VENTURE_CMD_H */

@@ -60,7 +60,7 @@ struct TownZonesWindow : Window {
 			label_width = std::max(label_width, GetStringBoundingBox(GetString(bar.label, 100u)).width);
 		}
 		size.width = std::max(size.width, label_width + ScaleGUITrad(120) + WidgetDimensions::scaled.framerect.Horizontal() + WidgetDimensions::scaled.hsep_wide);
-			size.height = std::size(_townzone_bars) * (GetCharacterHeight(FS_NORMAL) + WidgetDimensions::scaled.vsep_normal) + GetCharacterHeight(FS_NORMAL) * 2 + WidgetDimensions::scaled.framerect.Vertical();
+			size.height = std::size(_townzone_bars) * (GetCharacterHeight(FontSize::Normal) + WidgetDimensions::scaled.vsep_normal) + GetCharacterHeight(FontSize::Normal) * 2 + WidgetDimensions::scaled.framerect.Vertical();
 	}
 
 	void DrawWidget(const Rect &r, WidgetID widget) const override
@@ -71,7 +71,7 @@ struct TownZonesWindow : Window {
 		if (t == nullptr) return;
 
 		Rect ir = r.Shrink(WidgetDimensions::scaled.framerect);
-		int line_height = GetCharacterHeight(FS_NORMAL);
+	int line_height = GetCharacterHeight(FontSize::Normal);
 		int y = ir.top;
 
 		uint label_width = 0;
@@ -111,16 +111,16 @@ struct TownZonesWindow : Window {
 
 static constexpr std::initializer_list<NWidgetPart> _nested_town_zones_widgets = {
 	NWidget(NWID_HORIZONTAL),
-		NWidget(WWT_CLOSEBOX, COLOUR_BROWN),
-		NWidget(WWT_CAPTION, COLOUR_BROWN, WID_TZ_CAPTION),
-		NWidget(WWT_STICKYBOX, COLOUR_BROWN),
+		NWidget(WWT_CLOSEBOX, Colours::Brown),
+		NWidget(WWT_CAPTION, Colours::Brown, WID_TZ_CAPTION),
+		NWidget(WWT_STICKYBOX, Colours::Brown),
 	EndContainer(),
-	NWidget(WWT_PANEL, COLOUR_BROWN, WID_TZ_BARS), SetToolTip(STR_TOWN_ZONES_BARS_TOOLTIP), EndContainer(),
+	NWidget(WWT_PANEL, Colours::Brown, WID_TZ_BARS), SetToolTip(STR_TOWN_ZONES_BARS_TOOLTIP), EndContainer(),
 };
 
 static WindowDesc _town_zones_desc(
 	WDP_AUTO, "town_zones", 0, 0,
-	WC_TOWN_ZONES, WC_TOWN_VIEW,
+	WindowClass::TownZones, WindowClass::TownView,
 	{},
 	_nested_town_zones_widgets
 );

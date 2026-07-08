@@ -5,7 +5,7 @@
  * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <https://www.gnu.org/licenses/old-licenses/gpl-2.0>.
  */
 
-/** @file group_sl.cpp Code handling saving and loading of groups */
+/** @file group_sl.cpp Code handling saving and loading of groups. */
 
 #include "../stdafx.h"
 #include "../group.h"
@@ -17,15 +17,15 @@
 #include "../safeguards.h"
 
 static const SaveLoad _group_desc[] = {
-	 SLE_CONDVAR(Group, name,               SLE_NAME,                       SL_MIN_VERSION,  SLV_84),
-	SLE_CONDSSTR(Group, name,               SLE_STR | SLF_ALLOW_CONTROL,    SLV_84, SL_MAX_VERSION),
+	 SLE_CONDVAR(Group, name,               SLE_NAME,                       SL_MIN_VERSION,  SLV_REPLACE_CUSTOM_NAME_ARRAY),
+	SLE_CONDSSTR(Group, name,               SLE_STR | SLF_ALLOW_CONTROL,    SLV_REPLACE_CUSTOM_NAME_ARRAY, SL_MAX_VERSION),
 	     SLE_VAR(Group, owner,              SLE_UINT8),
 	     SLE_VAR(Group, vehicle_type,       SLE_UINT8),
 	     SLE_VAR(Group, flags,              SLE_UINT8),
 	 SLE_CONDVAR(Group, livery.in_use,      SLE_UINT8,                     SLV_GROUP_LIVERIES, SL_MAX_VERSION),
 	 SLE_CONDVAR(Group, livery.colour1,     SLE_UINT8,                     SLV_GROUP_LIVERIES, SL_MAX_VERSION),
 	 SLE_CONDVAR(Group, livery.colour2,     SLE_UINT8,                     SLV_GROUP_LIVERIES, SL_MAX_VERSION),
-	 SLE_CONDVAR(Group, parent,             SLE_UINT16,                    SLV_189, SL_MAX_VERSION),
+	 SLE_CONDVAR(Group, parent,             SLE_UINT16,                    SLV_GROUP_HIERARCHY, SL_MAX_VERSION),
 	 SLE_CONDVAR(Group, number, SLE_UINT16, SLV_GROUP_NUMBERS, SL_MAX_VERSION),
 };
 
@@ -50,10 +50,10 @@ struct GRPSChunkHandler : ChunkHandler {
 		int index;
 
 		while ((index = SlIterateArray()) != -1) {
-			Group *g = new (GroupID(index)) Group();
+			Group *g = Group::CreateAtIndex(GroupID(index));
 			SlObject(g, slt);
 
-			if (IsSavegameVersionBefore(SLV_189)) g->parent = GroupID::Invalid();
+			if (IsSavegameVersionBefore(SLV_GROUP_HIERARCHY)) g->parent = GroupID::Invalid();
 		}
 	}
 };

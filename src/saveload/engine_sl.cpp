@@ -5,7 +5,7 @@
  * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <https://www.gnu.org/licenses/old-licenses/gpl-2.0>.
  */
 
-/** @file engine_sl.cpp Code handling saving and loading of engines */
+/** @file engine_sl.cpp Code handling saving and loading of engines. */
 
 #include "../stdafx.h"
 
@@ -19,10 +19,10 @@
 #include "../safeguards.h"
 
 static const SaveLoad _engine_desc[] = {
-	 SLE_CONDVAR(Engine, intro_date,          SLE_FILE_U16 | SLE_VAR_I32,  SL_MIN_VERSION,  SLV_31),
-	 SLE_CONDVAR(Engine, intro_date,          SLE_INT32,                  SLV_31, SL_MAX_VERSION),
-	 SLE_CONDVAR(Engine, age,                 SLE_FILE_U16 | SLE_VAR_I32,  SL_MIN_VERSION,  SLV_31),
-	 SLE_CONDVAR(Engine, age,                 SLE_INT32,                  SLV_31, SL_MAX_VERSION),
+	 SLE_CONDVAR(Engine, intro_date,          SLE_FILE_U16 | SLE_VAR_I32,  SL_MIN_VERSION,  SLV_BIG_DATES),
+	 SLE_CONDVAR(Engine, intro_date,          SLE_INT32,                  SLV_BIG_DATES, SL_MAX_VERSION),
+	 SLE_CONDVAR(Engine, age,                 SLE_FILE_U16 | SLE_VAR_I32,  SL_MIN_VERSION,  SLV_BIG_DATES),
+	 SLE_CONDVAR(Engine, age,                 SLE_INT32,                  SLV_BIG_DATES, SL_MAX_VERSION),
 	     SLE_VAR(Engine, reliability,         SLE_UINT16),
 	     SLE_VAR(Engine, reliability_spd_dec, SLE_UINT16),
 	     SLE_VAR(Engine, reliability_start,   SLE_UINT16),
@@ -32,23 +32,30 @@ static const SaveLoad _engine_desc[] = {
 	     SLE_VAR(Engine, duration_phase_2,    SLE_UINT16),
 	     SLE_VAR(Engine, duration_phase_3,    SLE_UINT16),
 	     SLE_VAR(Engine, flags,               SLE_UINT8),
-	 SLE_CONDVAR(Engine, preview_asked,       SLE_UINT16,                SLV_179, SL_MAX_VERSION),
-	 SLE_CONDVAR(Engine, preview_company,     SLE_UINT8,                 SLV_179, SL_MAX_VERSION),
+	 SLE_CONDVAR(Engine, preview_asked,       SLE_UINT16,                SLV_ROBUST_ENGINE_PREVIEW, SL_MAX_VERSION),
+	 SLE_CONDVAR(Engine, preview_company,     SLE_UINT8,                 SLV_ROBUST_ENGINE_PREVIEW, SL_MAX_VERSION),
 	     SLE_VAR(Engine, preview_wait,        SLE_UINT8),
-	 SLE_CONDVAR(Engine, company_avail,       SLE_FILE_U8  | SLE_VAR_U16,  SL_MIN_VERSION, SLV_104),
-	 SLE_CONDVAR(Engine, company_avail,       SLE_UINT16,                SLV_104, SL_MAX_VERSION),
-	 SLE_CONDVAR(Engine, company_hidden,      SLE_UINT16,                SLV_193, SL_MAX_VERSION),
-	SLE_CONDSSTR(Engine, name,                SLE_STR,                    SLV_84, SL_MAX_VERSION),
+	 SLE_CONDVAR(Engine, company_avail,       SLE_FILE_U8  | SLE_VAR_U16,  SL_MIN_VERSION, SLV_MORE_COMPANIES),
+	 SLE_CONDVAR(Engine, company_avail,       SLE_UINT16,                SLV_MORE_COMPANIES, SL_MAX_VERSION),
+	 SLE_CONDVAR(Engine, company_hidden,      SLE_UINT16,                SLV_HIDE_ENGINES_FOR_COMPANY, SL_MAX_VERSION),
+	SLE_CONDSSTR(Engine, name,                SLE_STR,                    SLV_REPLACE_CUSTOM_NAME_ARRAY, SL_MAX_VERSION),
 };
 
 static TypedIndexContainer<std::vector<Engine>, EngineID> _temp_engine;
 
-Engine *GetTempDataEngine(EngineID index)
+/**
+ * Get temporary engine data for loading savegame engine information.
+ * @param index Engine ID of data.
+ * @param type Vehicle type of engine.
+ * @param local_id The local index of the engine.
+ * @return A temporary engine.
+ */
+Engine *GetTempDataEngine(EngineID index, VehicleType type, uint16_t local_id)
 {
 	if (index < _temp_engine.size()) {
 		return &_temp_engine[index];
 	} else if (index == _temp_engine.size()) {
-		return &_temp_engine.emplace_back();
+		return &_temp_engine.emplace_back(index, type, local_id);
 	} else {
 		NOT_REACHED();
 	}
@@ -79,7 +86,7 @@ struct ENGNChunkHandler : ChunkHandler {
 			Engine *e = GetTempDataEngine(static_cast<EngineID>(index));
 			SlObject(e, slt);
 
-			if (IsSavegameVersionBefore(SLV_179)) {
+			if (IsSavegameVersionBefore(SLV_ROBUST_ENGINE_PREVIEW)) {
 				/* preview_company_rank was replaced with preview_company and preview_asked.
 				 * Just cancel any previews. */
 				e->flags.Reset(EngineFlag{2}); // ENGINE_OFFER_WINDOW_OPEN

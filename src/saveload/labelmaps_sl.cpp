@@ -5,7 +5,7 @@
  * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <https://www.gnu.org/licenses/old-licenses/gpl-2.0>.
  */
 
-/** @file labelmaps_sl.cpp Code handling saving and loading of rail type label mappings */
+/** @file labelmaps_sl.cpp Code handling saving and loading of rail type label mappings. */
 
 #include "../stdafx.h"
 
@@ -45,7 +45,7 @@ struct RAILChunkHandler : ChunkHandler {
 		SlTableHeader(description);
 
 		LabelObject<RailTypeLabel> lo;
-		for (RailType r = RAILTYPE_BEGIN; r != RAILTYPE_END; r++) {
+		for (RailType r : EnumRange(RAILTYPE_END)) {
 			lo.label = GetRailTypeInfo(r)->label;
 
 			SlSetArrayIndex(r);
@@ -81,10 +81,10 @@ struct ROTTChunkHandler : ChunkHandler {
 		SlTableHeader(description);
 
 		LabelObject<RoadTypeLabel> lo;
-		for (RoadType r = ROADTYPE_BEGIN; r != ROADTYPE_END; r++) {
+		for (RoadType r : EnumRange(ROADTYPE_END)) {
 			const RoadTypeInfo *rti = GetRoadTypeInfo(r);
 			lo.label = rti->label;
-			lo.subtype = GetRoadTramType(r);
+			lo.subtype = to_underlying(GetRoadTramType(r));
 
 			SlSetArrayIndex(r);
 			SlObject(&lo, description);

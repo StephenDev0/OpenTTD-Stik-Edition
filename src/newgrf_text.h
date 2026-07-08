@@ -5,7 +5,7 @@
  * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <https://www.gnu.org/licenses/old-licenses/gpl-2.0>.
  */
 
-/** @file newgrf_text.h Header of Action 04 "universal holder" structure and functions */
+/** @file newgrf_text.h Header of Action 04 "universal holder" structure and functions. */
 
 #ifndef NEWGRF_TEXT_H
 #define NEWGRF_TEXT_H
@@ -20,7 +20,6 @@ std::optional<std::string_view> GetGRFStringFromGRFText(const GRFTextList &text_
 std::optional<std::string_view> GetGRFStringFromGRFText(const GRFTextWrapper &text);
 std::string_view GetGRFStringPtr(StringIndexInTab stringid);
 void CleanUpStrings();
-void SetCurrentGrfLangID(uint8_t language_id);
 std::string TranslateTTDPatchCodes(uint32_t grfid, uint8_t language_id, bool allow_newlines, std::string_view str, StringControlCode byte80 = SCC_NEWGRF_PRINT_WORD_STRING_ID);
 void AddGRFTextToList(GRFTextList &list, uint8_t langid, uint32_t grfid, bool allow_newlines, std::string_view text_to_add);
 void AddGRFTextToList(GRFTextWrapper &list, uint8_t langid, uint32_t grfid, bool allow_newlines, std::string_view text_to_add);

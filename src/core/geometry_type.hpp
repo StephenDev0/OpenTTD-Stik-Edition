@@ -28,7 +28,7 @@ inline int CentreBounds(int min, int max, int size)
 	return (min + max - size + 1) / 2;
 }
 
-/** A coordinate with two dimensons. */
+/** A coordinate with two dimensions. */
 template <typename T>
 struct Coord2D {
 	T x = 0; ///< X coordinate.
@@ -36,6 +36,12 @@ struct Coord2D {
 
 	constexpr Coord2D() = default;
 	constexpr Coord2D(T x, T y) : x(x), y(y) {}
+
+	/**
+	 * Compare with another instance of this class.
+	 * @return The std::strong_ordering of the comparison.
+	 */
+	constexpr auto operator<=>(const Coord2D<T> &) const = default;
 };
 
 /** A coordinate with three dimensions. */
@@ -47,6 +53,12 @@ struct Coord3D {
 
 	constexpr Coord3D() = default;
 	constexpr Coord3D(T x, T y, T z) : x(x), y(y), z(z) {}
+
+	/**
+	 * Compare with another instance of this class.
+	 * @return The std::strong_ordering of the comparison.
+	 */
+	constexpr auto operator<=>(const Coord3D<T> &) const = default;
 };
 
 /** Coordinates of a point in 2D */
@@ -264,7 +276,7 @@ struct Rect {
 	}
 
 	/**
-	 * Create a new Rect, replacing the left and right coordiates.
+	 * Create a new Rect, replacing the left and right coordinates.
 	 * @param new_left New left coordinate.
 	 * @param new_right New right coordinate.
 	 * @return The new Rect.
@@ -272,7 +284,7 @@ struct Rect {
 	[[nodiscard]] inline Rect WithX(int new_left, int new_right) const { return {new_left, this->top, new_right, this->bottom}; }
 
 	/**
-	 * Create a new Rect, replacing the top and bottom coordiates.
+	 * Create a new Rect, replacing the top and bottom coordinates.
 	 * @param new_top New top coordinate.
 	 * @param new_bottom New bottom coordinate.
 	 * @return The new Rect.
@@ -280,14 +292,14 @@ struct Rect {
 	[[nodiscard]] inline Rect WithY(int new_top, int new_bottom) const { return {this->left, new_top, this->right, new_bottom}; }
 
 	/**
-	 * Create a new Rect, replacing the left and right coordiates.
+	 * Create a new Rect, replacing the left and right coordinates.
 	 * @param other Rect containing the new left and right coordinates.
 	 * @return The new Rect.
 	 */
 	[[nodiscard]] inline Rect WithX(const Rect &other) const { return this->WithX(other.left, other.right); }
 
 	/**
-	 * Create a new Rect, replacing the top and bottom coordiates.
+	 * Create a new Rect, replacing the top and bottom coordinates.
 	 * @param other Rect containing the new top and bottom coordinates.
 	 * @return The new Rect.
 	 */

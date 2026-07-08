@@ -52,9 +52,9 @@ static inline uint8_t CalcOldVarLen(OldChunkType type)
 }
 
 /**
- *
- * Reads a byte from a file (do not call yourself, use ReadByte())
- *
+ * Reads a byte from a file (do not call yourself, use ReadByte()).
+ * @param ls The state for loading the save game.
+ * @return A single byte.
  */
 static uint8_t ReadByteFromFile(LoadgameState &ls)
 {
@@ -79,9 +79,9 @@ static uint8_t ReadByteFromFile(LoadgameState &ls)
 }
 
 /**
- *
- * Reads a byte from the buffer and decompress if needed
- *
+ * Reads a byte from the buffer and decompress if needed.
+ * @param ls The state for loading the save game.
+ * @return A single byte.
  */
 uint8_t ReadByte(LoadgameState &ls)
 {
@@ -113,9 +113,11 @@ uint8_t ReadByte(LoadgameState &ls)
 }
 
 /**
- *
- * Loads a chunk from the old savegame
- *
+ * Loads a chunk from the old savegame.
+ * @param ls The state for loading the save game.
+ * @param base The pointer to the object to load the data into, or \c nullptr for global objects.
+ * @param chunks The definition of the elements to load for this object.
+ * @return \c true if the chunk was loaded without problems.
  */
 bool LoadChunk(LoadgameState &ls, void *base, const OldChunks *chunks)
 {
@@ -241,7 +243,7 @@ bool LoadOldSaveGame(std::string_view file)
 	_settings_game.construction.freeform_edges = false; // disable so we can convert map array (SetTileType is still used)
 
 	/* Open file */
-	ls.file = FioFOpenFile(file, "rb", NO_DIRECTORY);
+	ls.file = FioFOpenFile(file, "rb", Subdirectory::None);
 
 	if (!ls.file.has_value()) {
 		Debug(oldloader, 0, "Cannot open file '{}'", file);
@@ -284,7 +286,7 @@ bool LoadOldSaveGame(std::string_view file)
 
 std::string GetOldSaveGameName(std::string_view file)
 {
-	auto f = FioFOpenFile(file, "rb", NO_DIRECTORY);
+	auto f = FioFOpenFile(file, "rb", Subdirectory::None);
 	if (!f.has_value()) return {};
 
 	std::string name;

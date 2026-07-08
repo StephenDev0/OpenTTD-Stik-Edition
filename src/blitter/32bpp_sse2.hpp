@@ -29,6 +29,7 @@
 /** Base methods for 32bpp SSE blitters. */
 class Blitter_32bppSSE_Base {
 public:
+	/** Ensure the destructor of the sub classes are called as well. */
 	virtual ~Blitter_32bppSSE_Base() = default;
 
 	struct MapValue {
@@ -62,6 +63,7 @@ public:
 		NoAnim, ///< The sprite has no palette animated pixel.
 	};
 
+	/** Bitset of \c SpriteFlag elements. */
 	using SpriteFlags = EnumBitSet<SpriteFlag, uint8_t>;
 
 	/** Data stored about a (single) sprite. */

@@ -107,13 +107,13 @@ void UpdatePublicCompaniesFinance()
 				Money payout = profit * c->dividend_policy * c->public_float_pct / 10000;
 				if (payout > 0 && GetAvailableMoney(c->index) >= payout) {
 					cur_company.Change(c->index);
-					SubtractMoneyFromCompany(CommandCost(EXPENSES_OTHER, payout));
+					SubtractMoneyFromCompany(CommandCost(ExpensesType::Other, payout));
 					AddNewsItem(GetEncodedString(STR_NEWS_DIVIDEND_PAID, c->index, payout), NewsType::Economy, NewsStyle::Normal, {});
 				}
 			}
 		}
 
-		SetWindowDirty(WC_FINANCES, c->index);
+		SetWindowDirty(WindowClass::Finances, c->index);
 	}
 
 	cur_company.Restore();

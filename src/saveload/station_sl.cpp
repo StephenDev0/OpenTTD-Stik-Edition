@@ -33,7 +33,7 @@ static void UpdateWaypointOrder(Order &o)
 	if (!o.IsType(OT_GOTO_STATION)) return;
 
 	const Station *st = Station::Get(o.GetDestination().ToStationID());
-	if ((st->had_vehicle_of_type & HVOT_WAYPOINT) == 0) return;
+	if (!st->had_vehicle_of_type.Test(StationVehicleType::Waypoint)) return;
 
 	o.MakeGoToWaypoint(o.GetDestination().ToStationID());
 }
@@ -47,21 +47,21 @@ void MoveBuoysToWaypoints()
 	/* Buoy orders become waypoint orders */
 	for (OrderList *ol : OrderList::Iterate()) {
 		VehicleType vt = ol->GetFirstSharedVehicle()->type;
-		if (vt != VEH_SHIP && vt != VEH_TRAIN) continue;
+		if (vt != VehicleType::Ship && vt != VehicleType::Train) continue;
 
 		for (Order &o : ol->GetOrders()) UpdateWaypointOrder(o);
 	}
 
 	for (Vehicle *v : Vehicle::Iterate()) {
 		VehicleType vt = v->type;
-		if (vt != VEH_SHIP && vt != VEH_TRAIN) continue;
+		if (vt != VehicleType::Ship && vt != VehicleType::Train) continue;
 
 		UpdateWaypointOrder(v->current_order);
 	}
 
 	/* Now make the stations waypoints */
 	for (Station *st : Station::Iterate()) {
-		if ((st->had_vehicle_of_type & HVOT_WAYPOINT) == 0) continue;
+		if (!st->had_vehicle_of_type.Test(StationVehicleType::Waypoint)) continue;
 
 		StationID index    = st->index;
 		TileIndex xy       = st->xy;
@@ -79,7 +79,7 @@ void MoveBuoysToWaypoints()
 		/* Stations and waypoints are in the same pool, so if a station
 		 * is deleted there must be place for a Waypoint. */
 		assert(Waypoint::CanAllocateItem());
-		Waypoint *wp   = new (index) Waypoint(xy);
+		Waypoint *wp   = Waypoint::CreateAtIndex(index, xy);
 		wp->town       = town;
 		wp->string_id  = train ? STR_SV_STNAME_WAYPOINT : STR_SV_STNAME_BUOY;
 		wp->name       = std::move(name);
@@ -93,7 +93,7 @@ void MoveBuoysToWaypoints()
 			/* When we make a rail waypoint of the station, convert the map as well. */
 			for (TileIndex t : train_st) {
 				Tile tile(t);
-				if (!IsTileType(tile, MP_STATION) || GetStationIndex(tile) != index) continue;
+				if (!IsTileType(tile, TileType::Station) || GetStationIndex(tile) != index) continue;
 
 				SB(tile.m6(), 3, 3, to_underlying(StationType::RailWaypoint));
 				wp->rect.BeforeAddTile(t, StationRect::ADD_FORCE);
@@ -151,8 +151,8 @@ void AfterLoadRoadStops()
 	for (RoadStop *rs : RoadStop::Iterate()) {
 		if (!rs->status.Test(RoadStop::RoadStopStatusFlag::BaseEntry)) continue;
 
-		rs->GetEntry(DIAGDIR_NE).Rebuild(rs);
-		rs->GetEntry(DIAGDIR_NW).Rebuild(rs);
+		rs->GetEntry(DiagDirection::NE).Rebuild(rs);
+		rs->GetEntry(DiagDirection::NW).Rebuild(rs);
 	}
 }
 
@@ -209,8 +209,8 @@ template <typename T>
 class SlStationSpecList : public VectorSaveLoadHandler<SlStationSpecList<T>, BaseStation, SpecMapping<T>> {
 public:
 	static inline const SaveLoad description[] = {
-		SLE_CONDVAR(SpecMapping<T>, grfid,    SLE_UINT32,                SLV_27,                    SL_MAX_VERSION),
-		SLE_CONDVAR(SpecMapping<T>, localidx, SLE_FILE_U8 | SLE_VAR_U16, SLV_27,                    SLV_EXTEND_ENTITY_MAPPING),
+		SLE_CONDVAR(SpecMapping<T>, grfid,    SLE_UINT32,                SLV_NEWGRF_STATIONS,                    SL_MAX_VERSION),
+		SLE_CONDVAR(SpecMapping<T>, localidx, SLE_FILE_U8 | SLE_VAR_U16, SLV_NEWGRF_STATIONS,                    SLV_EXTEND_ENTITY_MAPPING),
 		SLE_CONDVAR(SpecMapping<T>, localidx, SLE_UINT16,                SLV_EXTEND_ENTITY_MAPPING, SL_MAX_VERSION),
 	};
 	static inline const SaveLoadCompatTable compat_description = _station_spec_list_sl_compat;
@@ -228,6 +228,37 @@ public:
 /* Instantiate SlStationSpecList classes. */
 template class SlStationSpecList<StationSpec>;
 template class SlStationSpecList<RoadStopSpec>;
+
+class SlStationWaitingTriggers : public DefaultSaveLoadHandler<SlStationWaitingTriggers, BaseStation> {
+public:
+	using StationWaitingTriggersPair = std::pair<const TileIndex, StationRandomTriggers>;
+
+	static inline const SaveLoad description[] = {
+		SLE_VAR(StationWaitingTriggersPair, first, SLE_UINT32),
+		SLE_VAR(StationWaitingTriggersPair, second, SLE_UINT8),
+	};
+	static inline const SaveLoadCompatTable compat_description = _station_cargo_sl_compat;
+
+	void Save(BaseStation *st) const override
+	{
+		SlSetStructListLength(st->tile_waiting_random_triggers.size());
+		for (const auto &pair : st->tile_waiting_random_triggers) {
+			SlObject(const_cast<StationWaitingTriggersPair *>(&pair), this->GetDescription());
+		}
+	}
+
+	void Load(BaseStation *st) const override
+	{
+		size_t num = SlGetStructListLength(UINT32_MAX);
+		if (num == 0) return;
+
+		StationWaitingTriggersPair pair;
+		for (uint j = 0; j < num; ++j) {
+			SlObject(&pair, this->GetLoadDescription());
+			st->tile_waiting_random_triggers.emplace(pair.first, pair.second);
+		}
+	}
+};
 
 class SlStationCargo : public DefaultSaveLoadHandler<SlStationCargo, GoodsEntry> {
 public:
@@ -281,7 +312,7 @@ public:
 		    SLE_VAR(FlowSaveLoad, source,     SLE_UINT16),
 		    SLE_VAR(FlowSaveLoad, via,        SLE_UINT16),
 		    SLE_VAR(FlowSaveLoad, share,      SLE_UINT32),
-		SLE_CONDVAR(FlowSaveLoad, restricted, SLE_BOOL, SLV_187, SL_MAX_VERSION),
+		SLE_CONDVAR(FlowSaveLoad, restricted, SLE_BOOL, SLV_LINKGRAPH_RESTRICTED_FLOW, SL_MAX_VERSION),
 	};
 	static inline const SaveLoadCompatTable compat_description = _station_flow_sl_compat;
 
@@ -340,28 +371,28 @@ public:
 	static inline uint cargo_reserved_count;
 
 	static inline const SaveLoad description[] = {
-		SLEG_CONDVAR("waiting_acceptance", _waiting_acceptance, SLE_UINT16,        SL_MIN_VERSION, SLV_68),
-		 SLE_CONDVAR(GoodsEntry, status,               SLE_UINT8,                  SLV_68, SL_MAX_VERSION),
+		SLEG_CONDVAR("waiting_acceptance", _waiting_acceptance, SLE_UINT16,        SL_MIN_VERSION, SLV_CARGO_PACKETS),
+		 SLE_CONDVAR(GoodsEntry, status,               SLE_UINT8,                  SLV_CARGO_PACKETS, SL_MAX_VERSION),
 		     SLE_VAR(GoodsEntry, time_since_pickup,    SLE_UINT8),
 		     SLE_VAR(GoodsEntry, rating,               SLE_UINT8),
-		SLEG_CONDVAR("cargo_source", _cargo_source,    SLE_FILE_U8 | SLE_VAR_U16,   SL_MIN_VERSION, SLV_7),
-		SLEG_CONDVAR("cargo_source", _cargo_source,    SLE_UINT16,                  SLV_7, SLV_68),
-		SLEG_CONDVAR("cargo_source_xy", _cargo_source_xy, SLE_UINT32,               SLV_44, SLV_68),
-		SLEG_CONDVAR("cargo_days", _cargo_periods,     SLE_UINT8,                   SL_MIN_VERSION, SLV_68),
+		SLEG_CONDVAR("cargo_source", _cargo_source,    SLE_FILE_U8 | SLE_VAR_U16,   SL_MIN_VERSION, SLV_LARGER_CARGO_SOURCE),
+		SLEG_CONDVAR("cargo_source", _cargo_source,    SLE_UINT16,                  SLV_LARGER_CARGO_SOURCE, SLV_CARGO_PACKETS),
+		SLEG_CONDVAR("cargo_source_xy", _cargo_source_xy, SLE_UINT32,               SLV_CARGO_SOURCE_TILE, SLV_CARGO_PACKETS),
+		SLEG_CONDVAR("cargo_days", _cargo_periods,     SLE_UINT8,                   SL_MIN_VERSION, SLV_CARGO_PACKETS),
 		     SLE_VAR(GoodsEntry, last_speed,           SLE_UINT8),
 		     SLE_VAR(GoodsEntry, last_age,             SLE_UINT8),
-		SLEG_CONDVAR("cargo_feeder_share", _cargo_feeder_share,  SLE_FILE_U32 | SLE_VAR_I64, SLV_14, SLV_65),
-		SLEG_CONDVAR("cargo_feeder_share", _cargo_feeder_share,  SLE_INT64,                  SLV_65, SLV_68),
-		 SLE_CONDVAR(GoodsEntry, amount_fract,         SLE_UINT8,                 SLV_150, SL_MAX_VERSION),
-		SLEG_CONDREFLIST("packets", _packets,          REF_CARGO_PACKET,           SLV_68, SLV_183),
-		SLEG_CONDVAR("old_num_dests", _old_num_dests,  SLE_UINT32,                SLV_183, SLV_SAVELOAD_LIST_LENGTH),
-		SLEG_CONDVAR("cargo.reserved_count", SlStationGoods::cargo_reserved_count, SLE_UINT,                  SLV_181, SL_MAX_VERSION),
-		 SLE_CONDVAR(GoodsEntry, link_graph,           SLE_UINT16,                SLV_183, SL_MAX_VERSION),
-		 SLE_CONDVAR(GoodsEntry, node,                 SLE_UINT16,                SLV_183, SL_MAX_VERSION),
-		SLEG_CONDVAR("old_num_flows", _old_num_flows,  SLE_UINT32,                SLV_183, SLV_SAVELOAD_LIST_LENGTH),
-		 SLE_CONDVAR(GoodsEntry, max_waiting_cargo,    SLE_UINT32,                SLV_183, SL_MAX_VERSION),
-		SLEG_CONDSTRUCTLIST("flow", SlStationFlow,                                SLV_183, SL_MAX_VERSION),
-		SLEG_CONDSTRUCTLIST("cargo", SlStationCargo,                              SLV_183, SL_MAX_VERSION),
+		SLEG_CONDVAR("cargo_feeder_share", _cargo_feeder_share,  SLE_FILE_U32 | SLE_VAR_I64, SLV_TRANSFER_ORDER, SLV_UNIFY_CURRENCY),
+		SLEG_CONDVAR("cargo_feeder_share", _cargo_feeder_share,  SLE_INT64,                  SLV_UNIFY_CURRENCY, SLV_CARGO_PACKETS),
+		 SLE_CONDVAR(GoodsEntry, amount_fract,         SLE_UINT8,                 SLV_FRACTIONAL_CARGO_DELIVERY, SL_MAX_VERSION),
+		SLEG_CONDREFLIST("packets", _packets,          REF_CARGO_PACKET,           SLV_CARGO_PACKETS, SLV_CARGODIST),
+		SLEG_CONDVAR("old_num_dests", _old_num_dests,  SLE_UINT32,                SLV_CARGODIST, SLV_SAVELOAD_LIST_LENGTH),
+		SLEG_CONDVAR("cargo.reserved_count", SlStationGoods::cargo_reserved_count, SLE_UINT,                  SLV_CARGO_RESERVATION, SL_MAX_VERSION),
+		 SLE_CONDVAR(GoodsEntry, link_graph,           SLE_UINT16,                SLV_CARGODIST, SL_MAX_VERSION),
+		 SLE_CONDVAR(GoodsEntry, node,                 SLE_UINT16,                SLV_CARGODIST, SL_MAX_VERSION),
+		SLEG_CONDVAR("old_num_flows", _old_num_flows,  SLE_UINT32,                SLV_CARGODIST, SLV_SAVELOAD_LIST_LENGTH),
+		 SLE_CONDVAR(GoodsEntry, max_waiting_cargo,    SLE_UINT32,                SLV_CARGODIST, SL_MAX_VERSION),
+		SLEG_CONDSTRUCTLIST("flow", SlStationFlow,                                SLV_CARGODIST, SL_MAX_VERSION),
+		SLEG_CONDSTRUCTLIST("cargo", SlStationCargo,                              SLV_CARGODIST, SL_MAX_VERSION),
 	};
 
 	static inline const SaveLoadCompatTable compat_description = _station_goods_sl_compat;
@@ -372,7 +403,7 @@ public:
 	 */
 	size_t GetNumCargo() const
 	{
-		if (IsSavegameVersionBefore(SLV_55)) return 12;
+		if (IsSavegameVersionBefore(SLV_NEWGRF_CARGO)) return 12;
 		if (IsSavegameVersionBefore(SLV_EXTEND_CARGOTYPES)) return 32;
 		if (IsSavegameVersionBefore(SLV_SAVELOAD_LIST_LENGTH)) return NUM_CARGO;
 		/* Read from the savegame how long the list is. */
@@ -396,10 +427,10 @@ public:
 		Station *st = Station::From(bst);
 
 		/* Before savegame version 161, persistent storages were not stored in a pool. */
-		if (IsSavegameVersionBefore(SLV_161) && !IsSavegameVersionBefore(SLV_145) && st->facilities.Test(StationFacility::Airport)) {
+		if (IsSavegameVersionBefore(SLV_PERSISTENT_STORAGE_POOL) && !IsSavegameVersionBefore(SLV_NEWGRF_AIRPORT_SMOKE) && st->facilities.Test(StationFacility::Airport)) {
 			/* Store the old persistent storage. The GRFID will be added later. */
 			assert(PersistentStorage::CanAllocateItem());
-			st->airport.psa = new PersistentStorage(0, GSF_INVALID, TileIndex{});
+			st->airport.psa = PersistentStorage::Create(0, GrfSpecFeature::Invalid, TileIndex{});
 			std::copy(std::begin(_old_st_persistent_storage.storage), std::end(_old_st_persistent_storage.storage), std::begin(st->airport.psa->storage));
 		}
 
@@ -407,17 +438,17 @@ public:
 		for (auto it = std::begin(st->goods); it != end; ++it) {
 			GoodsEntry &ge = *it;
 			SlObject(&ge, this->GetLoadDescription());
-			if (!IsSavegameVersionBefore(SLV_181) && SlStationGoods::cargo_reserved_count != 0) {
+			if (!IsSavegameVersionBefore(SLV_CARGO_RESERVATION) && SlStationGoods::cargo_reserved_count != 0) {
 				ge.GetOrCreateData().cargo.reserved_count = SlStationGoods::cargo_reserved_count;
 			}
-			if (IsSavegameVersionBefore(SLV_183)) {
+			if (IsSavegameVersionBefore(SLV_CARGODIST)) {
 				SwapPackets(&ge);
 			}
-			if (IsSavegameVersionBefore(SLV_68)) {
+			if (IsSavegameVersionBefore(SLV_CARGO_PACKETS)) {
 				ge.status.Set(GoodsEntry::State::Acceptance, HasBit(_waiting_acceptance, 15));
 				if (GB(_waiting_acceptance, 0, 12) != 0) {
 					/* In old versions, enroute_from used 0xFF as StationID::Invalid() */
-					StationID source = (IsSavegameVersionBefore(SLV_7) && _cargo_source == 0xFF) ? StationID::Invalid() : static_cast<StationID>(_cargo_source);
+					StationID source = (IsSavegameVersionBefore(SLV_LARGER_CARGO_SOURCE) && _cargo_source == 0xFF) ? StationID::Invalid() : static_cast<StationID>(_cargo_source);
 
 					/* Make sure we can allocate the CargoPacket. This is safe
 					 * as there can only be ~64k stations and 32 cargoes in these
@@ -426,7 +457,7 @@ public:
 					assert(CargoPacket::CanAllocateItem());
 
 					/* Don't construct the packet with station here, because that'll fail with old savegames */
-					CargoPacket *cp = new CargoPacket(GB(_waiting_acceptance, 0, 12), _cargo_periods, source, TileIndex{_cargo_source_xy}, _cargo_feeder_share);
+					CargoPacket *cp = CargoPacket::Create(GB(_waiting_acceptance, 0, 12), _cargo_periods, source, TileIndex{_cargo_source_xy}, _cargo_feeder_share);
 					ge.GetOrCreateData().cargo.Append(cp, StationID::Invalid());
 					ge.status.Set(GoodsEntry::State::Rating);
 				}
@@ -438,11 +469,11 @@ public:
 	{
 		Station *st = Station::From(bst);
 
-		size_t num_cargo = IsSavegameVersionBefore(SLV_55) ? 12 : IsSavegameVersionBefore(SLV_EXTEND_CARGOTYPES) ? 32 : NUM_CARGO;
+		size_t num_cargo = IsSavegameVersionBefore(SLV_NEWGRF_CARGO) ? 12 : IsSavegameVersionBefore(SLV_EXTEND_CARGOTYPES) ? 32 : NUM_CARGO;
 		auto end = std::next(std::begin(st->goods), std::min(num_cargo, std::size(st->goods)));
 		for (auto it = std::begin(st->goods); it != end; ++it) {
 			GoodsEntry &ge = *it;
-			if (IsSavegameVersionBefore(SLV_183)) {
+			if (IsSavegameVersionBefore(SLV_CARGODIST)) {
 				SwapPackets(&ge); // We have to swap back again to be in the format pre-183 expects.
 				SlObject(&ge, this->GetDescription());
 				SwapPackets(&ge);
@@ -454,21 +485,21 @@ public:
 };
 
 static const SaveLoad _old_station_desc[] = {
-	SLE_CONDVAR(Station, xy,                         SLE_FILE_U16 | SLE_VAR_U32,  SL_MIN_VERSION, SLV_6),
-	SLE_CONDVAR(Station, xy,                         SLE_UINT32,                  SLV_6, SL_MAX_VERSION),
-	SLE_CONDVAR(Station, train_station.tile,         SLE_FILE_U16 | SLE_VAR_U32,  SL_MIN_VERSION, SLV_6),
-	SLE_CONDVAR(Station, train_station.tile,         SLE_UINT32,                  SLV_6, SL_MAX_VERSION),
-	SLE_CONDVAR(Station, airport.tile,               SLE_FILE_U16 | SLE_VAR_U32,  SL_MIN_VERSION, SLV_6),
-	SLE_CONDVAR(Station, airport.tile,               SLE_UINT32,                  SLV_6, SL_MAX_VERSION),
+	SLE_CONDVAR(Station, xy,                         SLE_FILE_U16 | SLE_VAR_U32,  SL_MIN_VERSION, SLV_MULTIPLE_ROAD_STOPS),
+	SLE_CONDVAR(Station, xy,                         SLE_UINT32,                  SLV_MULTIPLE_ROAD_STOPS, SL_MAX_VERSION),
+	SLE_CONDVAR(Station, train_station.tile,         SLE_FILE_U16 | SLE_VAR_U32,  SL_MIN_VERSION, SLV_MULTIPLE_ROAD_STOPS),
+	SLE_CONDVAR(Station, train_station.tile,         SLE_UINT32,                  SLV_MULTIPLE_ROAD_STOPS, SL_MAX_VERSION),
+	SLE_CONDVAR(Station, airport.tile,               SLE_FILE_U16 | SLE_VAR_U32,  SL_MIN_VERSION, SLV_MULTIPLE_ROAD_STOPS),
+	SLE_CONDVAR(Station, airport.tile,               SLE_UINT32,                  SLV_MULTIPLE_ROAD_STOPS, SL_MAX_VERSION),
 	    SLE_REF(Station, town,                       REF_TOWN),
 	    SLE_VAR(Station, train_station.w,            SLE_FILE_U8 | SLE_VAR_U16),
-	SLE_CONDVAR(Station, train_station.h,            SLE_FILE_U8 | SLE_VAR_U16,   SLV_2, SL_MAX_VERSION),
+	SLE_CONDVAR(Station, train_station.h,            SLE_FILE_U8 | SLE_VAR_U16,   SLV_VEHICLE_CURRENCY_STATION_CHANGES, SL_MAX_VERSION),
 
 	    SLE_VAR(Station, string_id,                  SLE_STRINGID),
-	SLE_CONDSSTR(Station, name,                      SLE_STR | SLF_ALLOW_CONTROL, SLV_84, SL_MAX_VERSION),
-	SLE_CONDVAR(Station, indtype,                    SLE_UINT8,                 SLV_103, SL_MAX_VERSION),
-	SLE_CONDVAR(Station, had_vehicle_of_type,        SLE_FILE_U16 | SLE_VAR_U8,   SL_MIN_VERSION, SLV_122),
-	SLE_CONDVAR(Station, had_vehicle_of_type,        SLE_UINT8,                 SLV_122, SL_MAX_VERSION),
+	SLE_CONDSSTR(Station, name,                      SLE_STR | SLF_ALLOW_CONTROL, SLV_REPLACE_CUSTOM_NAME_ARRAY, SL_MAX_VERSION),
+	SLE_CONDVAR(Station, indtype,                    SLE_UINT8,                 SLV_NEWGRF_SUPPLIED_STATION_NAME, SL_MAX_VERSION),
+	SLE_CONDVAR(Station, had_vehicle_of_type,        SLE_FILE_U16 | SLE_VAR_U8,   SL_MIN_VERSION, SLV_WAYPOINT_MORE_LIKE_STATION),
+	SLE_CONDVAR(Station, had_vehicle_of_type,        SLE_UINT8,                 SLV_WAYPOINT_MORE_LIKE_STATION, SL_MAX_VERSION),
 
 	    SLE_VAR(Station, time_since_load,            SLE_UINT8),
 	    SLE_VAR(Station, time_since_unload,          SLE_UINT8),
@@ -476,27 +507,27 @@ static const SaveLoad _old_station_desc[] = {
 	    SLE_VAR(Station, owner,                      SLE_UINT8),
 	    SLE_VAR(Station, facilities,                 SLE_UINT8),
 	    SLE_VAR(Station, airport.type,               SLE_UINT8),
-	SLE_CONDVARNAME(Station, airport.blocks, "airport.flags", SLE_VAR_U64 | SLE_FILE_U16,  SL_MIN_VERSION,  SLV_3),
-	SLE_CONDVARNAME(Station, airport.blocks, "airport.flags", SLE_VAR_U64 | SLE_FILE_U32,  SLV_3, SLV_46),
-	SLE_CONDVARNAME(Station, airport.blocks, "airport.flags", SLE_UINT64,                 SLV_46, SL_MAX_VERSION),
+	SLE_CONDVARNAME(Station, airport.blocks, "airport.flags", SLE_VAR_U64 | SLE_FILE_U16,  SL_MIN_VERSION,  SLV_BIGGER_STATION_VARIABLES),
+	SLE_CONDVARNAME(Station, airport.blocks, "airport.flags", SLE_VAR_U64 | SLE_FILE_U32,  SLV_BIGGER_STATION_VARIABLES, SLV_MORE_AIRPORT_BLOCKS),
+	SLE_CONDVARNAME(Station, airport.blocks, "airport.flags", SLE_UINT64,                 SLV_MORE_AIRPORT_BLOCKS, SL_MAX_VERSION),
 
-	SLE_CONDVAR(Station, last_vehicle_type,          SLE_UINT8,                  SLV_26, SL_MAX_VERSION),
+	SLE_CONDVAR(Station, last_vehicle_type,          SLE_UINT8,                  SLV_LAST_VEHICLE_TYPE, SL_MAX_VERSION),
 
-	SLE_CONDVAR(Station, build_date,                 SLE_FILE_U16 | SLE_VAR_I32,  SLV_3, SLV_31),
-	SLE_CONDVAR(Station, build_date,                 SLE_INT32,                  SLV_31, SL_MAX_VERSION),
+	SLE_CONDVAR(Station, build_date,                 SLE_FILE_U16 | SLE_VAR_I32,  SLV_BIGGER_STATION_VARIABLES, SLV_BIG_DATES),
+	SLE_CONDVAR(Station, build_date,                 SLE_INT32,                  SLV_BIG_DATES, SL_MAX_VERSION),
 
-	SLE_CONDREF(Station, bus_stops,                  REF_ROADSTOPS,               SLV_6, SL_MAX_VERSION),
-	SLE_CONDREF(Station, truck_stops,                REF_ROADSTOPS,               SLV_6, SL_MAX_VERSION),
+	SLE_CONDREF(Station, bus_stops,                  REF_ROADSTOPS,               SLV_MULTIPLE_ROAD_STOPS, SL_MAX_VERSION),
+	SLE_CONDREF(Station, truck_stops,                REF_ROADSTOPS,               SLV_MULTIPLE_ROAD_STOPS, SL_MAX_VERSION),
 
 	/* Used by newstations for graphic variations */
-	SLE_CONDVAR(Station, random_bits,                SLE_UINT16,                 SLV_27, SL_MAX_VERSION),
-	SLE_CONDVARNAME(Station, waiting_random_triggers, "waiting_triggers", SLE_UINT8, SLV_27, SL_MAX_VERSION),
-	SLEG_CONDVAR("num_specs", SlStationSpecList<StationSpec>::last_num_specs, SLE_UINT8, SLV_27, SL_MAX_VERSION),
+	SLE_CONDVAR(Station, random_bits,                SLE_UINT16,                 SLV_NEWGRF_STATIONS, SL_MAX_VERSION),
+	SLE_CONDVARNAME(Station, waiting_random_triggers, "waiting_triggers", SLE_UINT8, SLV_NEWGRF_STATIONS, SL_MAX_VERSION),
+	SLEG_CONDVAR("num_specs", SlStationSpecList<StationSpec>::last_num_specs, SLE_UINT8, SLV_NEWGRF_STATIONS, SL_MAX_VERSION),
 
-	SLE_CONDREFLIST(Station, loading_vehicles,       REF_VEHICLE,                SLV_57, SL_MAX_VERSION),
+	SLE_CONDREFLIST(Station, loading_vehicles,       REF_VEHICLE,                SLV_FIFO_LOADING, SL_MAX_VERSION),
 
 	SLEG_STRUCTLIST("goods", SlStationGoods),
-	SLEG_CONDSTRUCTLIST("speclist", SlStationSpecList<StationSpec>, SLV_27, SL_MAX_VERSION),
+	SLEG_CONDSTRUCTLIST("speclist", SlStationSpecList<StationSpec>, SLV_NEWGRF_STATIONS, SL_MAX_VERSION),
 };
 
 struct STNSChunkHandler : ChunkHandler {
@@ -512,7 +543,7 @@ struct STNSChunkHandler : ChunkHandler {
 
 		int index;
 		while ((index = SlIterateArray()) != -1) {
-			Station *st = new (StationID(index)) Station();
+			Station *st = Station::CreateAtIndex(StationID(index));
 
 			_waiting_acceptance = 0;
 			SlObject(st, slt);
@@ -521,10 +552,10 @@ struct STNSChunkHandler : ChunkHandler {
 
 	void FixPointers() const override
 	{
-		/* From SLV_123 we store stations in STNN; before that in STNS. So do not
-		 * fix pointers when the version is SLV_123 or up, as that would fix
+		/* From SLV_UNIFY_WAYPOINT_AND_STATION we store stations in STNN; before that in STNS. So do not
+		 * fix pointers when the version is SLV_UNIFY_WAYPOINT_AND_STATION or up, as that would fix
 		 * pointers twice: once in STNN chunk and once here. */
-		if (!IsSavegameVersionBefore(SLV_123)) return;
+		if (!IsSavegameVersionBefore(SLV_UNIFY_WAYPOINT_AND_STATION)) return;
 
 		for (Station *st : Station::Iterate()) {
 			SlObject(st, _old_station_desc);
@@ -563,6 +594,7 @@ public:
 		/* Used by newstations for graphic variations */
 		    SLE_VAR(BaseStation, random_bits,            SLE_UINT16),
 		    SLE_VARNAME(BaseStation, waiting_random_triggers, "waiting_triggers", SLE_UINT8),
+	   SLEG_STRUCTLIST("tile_waiting_triggers", SlStationWaitingTriggers),
 	   SLEG_CONDVAR("num_specs", SlStationSpecList<StationSpec>::last_num_specs, SLE_UINT8, SL_MIN_VERSION, SLV_SAVELOAD_LIST_LENGTH),
 	};
 	static inline const SaveLoadCompatTable compat_description = _station_base_sl_compat;
@@ -603,14 +635,14 @@ public:
 		SLE_CONDVAR(Station, docking_station.w,          SLE_FILE_U8 | SLE_VAR_U16, SLV_MULTITILE_DOCKS, SL_MAX_VERSION),
 		SLE_CONDVAR(Station, docking_station.h,          SLE_FILE_U8 | SLE_VAR_U16, SLV_MULTITILE_DOCKS, SL_MAX_VERSION),
 		    SLE_VAR(Station, airport.tile,               SLE_UINT32),
-		SLE_CONDVAR(Station, airport.w,                  SLE_FILE_U8 | SLE_VAR_U16, SLV_140, SL_MAX_VERSION),
-		SLE_CONDVAR(Station, airport.h,                  SLE_FILE_U8 | SLE_VAR_U16, SLV_140, SL_MAX_VERSION),
+		SLE_CONDVAR(Station, airport.w,                  SLE_FILE_U8 | SLE_VAR_U16, SLV_STORE_AIRPORT_SIZE, SL_MAX_VERSION),
+		SLE_CONDVAR(Station, airport.h,                  SLE_FILE_U8 | SLE_VAR_U16, SLV_STORE_AIRPORT_SIZE, SL_MAX_VERSION),
 		    SLE_VAR(Station, airport.type,               SLE_UINT8),
-		SLE_CONDVAR(Station, airport.layout,             SLE_UINT8,                 SLV_145, SL_MAX_VERSION),
+		SLE_CONDVAR(Station, airport.layout,             SLE_UINT8,                 SLV_NEWGRF_AIRPORT_SMOKE, SL_MAX_VERSION),
 		SLE_VARNAME(Station, airport.blocks, "airport.flags", SLE_UINT64),
-		SLE_CONDVAR(Station, airport.rotation,           SLE_UINT8,                 SLV_145, SL_MAX_VERSION),
-		SLEG_CONDARR("storage", _old_st_persistent_storage.storage,  SLE_UINT32, 16, SLV_145, SLV_161),
-		SLE_CONDREF(Station, airport.psa,                REF_STORAGE,               SLV_161, SL_MAX_VERSION),
+		SLE_CONDVAR(Station, airport.rotation,           SLE_UINT8,                 SLV_NEWGRF_AIRPORT_SMOKE, SL_MAX_VERSION),
+		SLEG_CONDARR("storage", _old_st_persistent_storage.storage,  SLE_UINT32, 16, SLV_NEWGRF_AIRPORT_SMOKE, SLV_PERSISTENT_STORAGE_POOL),
+		SLE_CONDREF(Station, airport.psa,                REF_STORAGE,               SLV_PERSISTENT_STORAGE_POOL, SL_MAX_VERSION),
 
 		    SLE_VAR(Station, indtype,                    SLE_UINT8),
 
@@ -619,7 +651,7 @@ public:
 		    SLE_VAR(Station, last_vehicle_type,          SLE_UINT8),
 		    SLE_VAR(Station, had_vehicle_of_type,        SLE_UINT8),
 		SLE_REFLIST(Station, loading_vehicles,           REF_VEHICLE),
-		SLE_CONDVAR(Station, always_accepted,            SLE_FILE_U32 | SLE_VAR_U64, SLV_127, SLV_EXTEND_CARGOTYPES),
+		SLE_CONDVAR(Station, always_accepted,            SLE_FILE_U32 | SLE_VAR_U64, SLV_TOWN_ACCEPTANCE, SLV_EXTEND_CARGOTYPES),
 		SLE_CONDVAR(Station, always_accepted,            SLE_UINT64,                 SLV_EXTEND_CARGOTYPES, SL_MAX_VERSION),
 		SLEG_CONDSTRUCTLIST("speclist", SlRoadStopTileData,                          SLV_NEWGRF_ROAD_STOPS, SLV_ROAD_STOP_TILE_DATA),
 		SLEG_STRUCTLIST("goods", SlStationGoods),
@@ -651,9 +683,9 @@ public:
 		SLEG_STRUCT("base", SlStationBase),
 		    SLE_VAR(Waypoint, town_cn,                   SLE_UINT16),
 
-		SLE_CONDVAR(Waypoint, train_station.tile,        SLE_UINT32,                  SLV_124, SL_MAX_VERSION),
-		SLE_CONDVAR(Waypoint, train_station.w,           SLE_FILE_U8 | SLE_VAR_U16,   SLV_124, SL_MAX_VERSION),
-		SLE_CONDVAR(Waypoint, train_station.h,           SLE_FILE_U8 | SLE_VAR_U16,   SLV_124, SL_MAX_VERSION),
+		SLE_CONDVAR(Waypoint, train_station.tile,        SLE_UINT32,                  SLV_MULTI_TILE_WAYPOINTS, SL_MAX_VERSION),
+		SLE_CONDVAR(Waypoint, train_station.w,           SLE_FILE_U8 | SLE_VAR_U16,   SLV_MULTI_TILE_WAYPOINTS, SL_MAX_VERSION),
+		SLE_CONDVAR(Waypoint, train_station.h,           SLE_FILE_U8 | SLE_VAR_U16,   SLV_MULTI_TILE_WAYPOINTS, SL_MAX_VERSION),
 		SLE_CONDVAR(Waypoint, waypoint_flags,            SLE_UINT16,                  SLV_ROAD_WAYPOINTS, SL_MAX_VERSION),
 		SLE_CONDVAR(Waypoint, road_waypoint_area.tile,   SLE_UINT32,                  SLV_ROAD_WAYPOINTS, SL_MAX_VERSION),
 		SLE_CONDVAR(Waypoint, road_waypoint_area.w,      SLE_FILE_U8 | SLE_VAR_U16,   SLV_ROAD_WAYPOINTS, SL_MAX_VERSION),
@@ -684,7 +716,7 @@ static const SaveLoad _station_desc[] = {
 	SLE_SAVEBYTE(BaseStation, facilities),
 	SLEG_STRUCT("normal", SlStationNormal),
 	SLEG_STRUCT("waypoint", SlStationWaypoint),
-	SLEG_CONDSTRUCTLIST("speclist", SlStationSpecList<StationSpec>, SLV_27, SL_MAX_VERSION),
+	SLEG_CONDSTRUCTLIST("speclist", SlStationSpecList<StationSpec>, SLV_NEWGRF_STATIONS, SL_MAX_VERSION),
 	SLEG_CONDSTRUCTLIST("roadstopspeclist", SlStationSpecList<RoadStopSpec>, SLV_NEWGRF_ROAD_STOPS, SL_MAX_VERSION),
 	SLEG_CONDSTRUCTLIST("roadstoptiledata", SlRoadStopTileData, SLV_ROAD_STOP_TILE_DATA, SL_MAX_VERSION),
 };
@@ -714,17 +746,17 @@ struct STNNChunkHandler : ChunkHandler {
 		while ((index = SlIterateArray()) != -1) {
 			bool waypoint = static_cast<StationFacilities>(SlReadByte()).Test(StationFacility::Waypoint);
 
-			BaseStation *bst = waypoint ? (BaseStation *)new (StationID(index)) Waypoint() : new (StationID(index)) Station();
+			BaseStation *bst = waypoint ? (BaseStation *)Waypoint::CreateAtIndex(StationID(index)) : Station::CreateAtIndex(StationID(index));
 			SlObject(bst, slt);
 		}
 	}
 
 	void FixPointers() const override
 	{
-		/* From SLV_123 we store stations in STNN; before that in STNS. So do not
-		 * fix pointers when the version is below SLV_123, as that would fix
+		/* From SLV_UNIFY_WAYPOINT_AND_STATION we store stations in STNN; before that in STNS. So do not
+		 * fix pointers when the version is below SLV_UNIFY_WAYPOINT_AND_STATION, as that would fix
 		 * pointers twice: once in STNS chunk and once here. */
-		if (IsSavegameVersionBefore(SLV_123)) return;
+		if (IsSavegameVersionBefore(SLV_UNIFY_WAYPOINT_AND_STATION)) return;
 
 		for (BaseStation *bst : BaseStation::Iterate()) {
 			SlObject(bst, _station_desc);
@@ -752,7 +784,7 @@ struct ROADChunkHandler : ChunkHandler {
 		int index;
 
 		while ((index = SlIterateArray()) != -1) {
-			RoadStop *rs = new (RoadStopID(index)) RoadStop(INVALID_TILE);
+			RoadStop *rs = RoadStop::CreateAtIndex(RoadStopID(index), INVALID_TILE);
 
 			SlObject(rs, slt);
 		}

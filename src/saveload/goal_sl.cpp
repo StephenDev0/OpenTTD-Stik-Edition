@@ -5,7 +5,7 @@
  * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <https://www.gnu.org/licenses/old-licenses/gpl-2.0>.
  */
 
-/** @file goal_sl.cpp Code handling saving and loading of goals */
+/** @file goal_sl.cpp Code handling saving and loading of goals. */
 
 #include "../stdafx.h"
 
@@ -21,8 +21,8 @@ static const SaveLoad _goals_desc[] = {
 	     SLE_VAR(Goal, type,      SLE_FILE_U16 | SLE_VAR_U8),
 	     SLE_VAR(Goal, dst,       SLE_UINT32),
 	    SLE_SSTR(Goal, text,      SLE_STR | SLF_ALLOW_CONTROL),
-	SLE_CONDSSTR(Goal, progress,  SLE_STR | SLF_ALLOW_CONTROL, SLV_182, SL_MAX_VERSION),
-	 SLE_CONDVAR(Goal, completed, SLE_BOOL, SLV_182, SL_MAX_VERSION),
+	SLE_CONDSSTR(Goal, progress,  SLE_STR | SLF_ALLOW_CONTROL, SLV_GOAL_PROGRESS_PLANE_ACCELERATION, SL_MAX_VERSION),
+	 SLE_CONDVAR(Goal, completed, SLE_BOOL, SLV_GOAL_PROGRESS_PLANE_ACCELERATION, SL_MAX_VERSION),
 };
 
 struct GOALChunkHandler : ChunkHandler {
@@ -44,7 +44,7 @@ struct GOALChunkHandler : ChunkHandler {
 
 		int index;
 		while ((index = SlIterateArray()) != -1) {
-			Goal *s = new (GoalID(index)) Goal();
+			Goal *s = Goal::CreateAtIndex(GoalID(index));
 			SlObject(s, slt);
 		}
 	}

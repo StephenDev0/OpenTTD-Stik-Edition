@@ -36,12 +36,12 @@ const SaveLoadCompat _industry_sl_compat[] = {
 	SLC_VAR("location.h"),
 	SLC_VAR("town"),
 	SLC_VAR("neutral_station"),
-	SLC_NULL(2, SL_MIN_VERSION, SLV_61),
+	SLC_NULL(2, SL_MIN_VERSION, SLV_MULTIPLE_ROAD_TYPES),
 	SLC_VAR("produced_cargo"),
 	SLC_VAR("incoming_cargo_waiting"),
 	SLC_VAR("produced_cargo_waiting"),
 	SLC_VAR("production_rate"),
-	SLC_NULL(3, SL_MIN_VERSION, SLV_61),
+	SLC_NULL(3, SL_MIN_VERSION, SLV_MULTIPLE_ROAD_TYPES),
 	SLC_VAR("accepts_cargo"),
 	SLC_VAR("prod_level"),
 	SLC_VAR("this_month_production"),
@@ -67,10 +67,10 @@ const SaveLoadCompat _industry_sl_compat[] = {
 	SLC_VAR("exclusive_consumer"),
 	SLC_VAR("storage"),
 	SLC_VAR("psa"),
-	SLC_NULL(1, SLV_82, SLV_197),
+	SLC_NULL(1, SLV_NEWGRF_INDUSTRY_RANDOM_TRIGGERS, SLV_STORE_MAP_VARIETY),
 	SLC_VAR("random"),
 	SLC_VAR("text"),
-	SLC_NULL(32, SLV_2, SLV_144),
+	SLC_NULL(32, SLV_VEHICLE_CURRENCY_STATION_CHANGES, SLV_REORDER_UNMOVABLE_REMOVE_RESERVED),
 };
 
 /** Original field order for _industry_builder_desc. */

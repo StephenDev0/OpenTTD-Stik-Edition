@@ -6,13 +6,13 @@
  */
 
 /**
- * @file newgrf_text.cpp
- * Implementation of  Action 04 "universal holder" structure and functions.
+ * @file newgrf_text.cpp Implementation of Action 04 "universal holder" structure and functions.
+ *
  * This file implements a linked-lists of strings,
  * holding everything that the newgrf action 04 will send over to OpenTTD.
  * One of the biggest problems is that Dynamic lang Array uses ISO codes
  * as way to identifying current user lang, while newgrf uses bit shift codes
- * not related to ISO.  So equivalence functionality had to be set.
+ * not related to ISO. So equivalence functionality had to be set.
  */
 
 #include "stdafx.h"
@@ -74,7 +74,6 @@ struct GRFTextEntry {
 
 
 static TypedIndexContainer<std::vector<GRFTextEntry>, StringIndexInTab> _grf_text;
-static uint8_t _current_lang_id = GRFLX_ENGLISH;  ///< by default, english is used.
 
 /**
  * Get the mapping from the NewGRF supplied ID to OpenTTD's internal ID.
@@ -532,27 +531,16 @@ void AddGRFTextToList(GRFTextWrapper &list, std::string_view text_to_add)
 
 /**
  * Add the new read string into our structure.
+ * @param grfid The GRF to load the string for.
+ * @param stringid The GRF-local identifier of the string.
+ * @param langid_to_add The language to add them to.
+ * @param allow_newlines Whether newlines are allowed in the string.
+ * @param text_to_add The actual text of the string.
+ * @param def_string The fallback string if a translation for this string isn't available.
+ * @return The OpenTTD internal string identifier.
  */
-StringID AddGRFString(uint32_t grfid, GRFStringID stringid, uint8_t langid_to_add, bool new_scheme, bool allow_newlines, std::string_view text_to_add, StringID def_string)
+static StringID AddGRFString(uint32_t grfid, GRFStringID stringid, uint8_t langid_to_add, bool allow_newlines, std::string_view text_to_add, StringID def_string)
 {
-	/* When working with the old language scheme (grf_version is less than 7) and
-	 * English or American is among the set bits, simply add it as English in
-	 * the new scheme, i.e. as langid = 1.
-	 * If English is set, it is pretty safe to assume the translations are not
-	 * actually translated.
-	 */
-	if (!new_scheme) {
-		if (langid_to_add & (GRFLB_AMERICAN | GRFLB_ENGLISH)) {
-			langid_to_add = GRFLX_ENGLISH;
-		} else {
-			StringID ret = STR_EMPTY;
-			if (langid_to_add & GRFLB_GERMAN)  ret = AddGRFString(grfid, stringid, GRFLX_GERMAN,  true, allow_newlines, text_to_add, def_string);
-			if (langid_to_add & GRFLB_FRENCH)  ret = AddGRFString(grfid, stringid, GRFLX_FRENCH,  true, allow_newlines, text_to_add, def_string);
-			if (langid_to_add & GRFLB_SPANISH) ret = AddGRFString(grfid, stringid, GRFLX_SPANISH, true, allow_newlines, text_to_add, def_string);
-			return ret;
-		}
-	}
-
 	auto it = std::ranges::find_if(_grf_text, [&grfid, &stringid](const GRFTextEntry &grf_text) { return grf_text.grfid == grfid && grf_text.stringid == stringid; });
 	if (it == std::end(_grf_text)) {
 		/* Too many strings allocated, return empty. */
@@ -575,7 +563,40 @@ StringID AddGRFString(uint32_t grfid, GRFStringID stringid, uint8_t langid_to_ad
 }
 
 /**
- * Returns the index for this stringid associated with its grfID
+ * Add the new read string into our structure.
+ * @param grfid The GRF to load the string for.
+ * @param stringid The GRF-local identifier of the string.
+ * @param langid_to_add The language to add them to.
+ * @param new_scheme Is the NewGRF version 7 or higher?
+ * @param allow_newlines Whether newlines are allowed in the string.
+ * @param text_to_add The actual text of the string.
+ * @param def_string The fallback string if a translation for this string isn't available.
+ * @return The OpenTTD internal string identifier.
+ */
+StringID AddGRFString(uint32_t grfid, GRFStringID stringid, uint8_t langid_to_add, bool new_scheme, bool allow_newlines, std::string_view text_to_add, StringID def_string)
+{
+	if (new_scheme) return AddGRFString(grfid, stringid, langid_to_add, allow_newlines, text_to_add, def_string);
+
+	/* When working with the old language scheme (grf_version is less than 7) and
+	 * English or American is among the set bits, simply add it as English in
+	 * the new scheme, i.e. as langid = 1.
+	 * If English is set, it is pretty safe to assume the translations are not
+	 * actually translated.
+	 */
+	if (langid_to_add & (GRFLB_AMERICAN | GRFLB_ENGLISH)) return AddGRFString(grfid, stringid, GRFLX_ENGLISH, allow_newlines, text_to_add, def_string);
+
+	StringID ret = STR_EMPTY;
+	if (langid_to_add & GRFLB_GERMAN) ret = AddGRFString(grfid, stringid, GRFLX_GERMAN, allow_newlines, text_to_add, def_string);
+	if (langid_to_add & GRFLB_FRENCH) ret = AddGRFString(grfid, stringid, GRFLX_FRENCH, allow_newlines, text_to_add, def_string);
+	if (langid_to_add & GRFLB_SPANISH) ret = AddGRFString(grfid, stringid, GRFLX_SPANISH, allow_newlines, text_to_add, def_string);
+	return ret;
+}
+
+/**
+ * Returns the index for this stringid associated with its grfID.
+ * @param grfid The GRF to find the string for.
+ * @param stringid The GRF-local identifier of the string.
+ * @return The string identifier, or STR_UNDEFINED when it can't be found.
  */
 StringID GetGRFStringID(uint32_t grfid, GRFStringID stringid)
 {
@@ -595,6 +616,7 @@ StringID GetGRFStringID(uint32_t grfid, GRFStringID stringid)
  * is returned. If there is neither a default nor a translation for the
  * current language nullptr is returned.
  * @param text_list The GRFTextList to get the string from.
+ * @return The content of the requested string, or \c std::nullopt.
  */
 std::optional<std::string_view> GetGRFStringFromGRFText(const GRFTextList &text_list)
 {
@@ -602,7 +624,7 @@ std::optional<std::string_view> GetGRFStringFromGRFText(const GRFTextList &text_
 
 	/* Search the list of lang-strings of this stringid for current lang */
 	for (const auto &text : text_list) {
-		if (text.langid == _current_lang_id) return text.text;
+		if (text.langid == _current_language->newgrflangid) return text.text;
 
 		/* If the current string is English or American, set it as the
 		 * fallback language if the specific language isn't available. */
@@ -619,7 +641,8 @@ std::optional<std::string_view> GetGRFStringFromGRFText(const GRFTextList &text_
  * current language it is returned, otherwise the default translation
  * is returned. If there is neither a default nor a translation for the
  * current language nullptr is returned.
- * @param text The GRFTextList to get the string from.
+ * @param text The GRFTextWrapper to get the string from.
+ * @return The content of the requested string, or \c std::nullopt.
  */
 std::optional<std::string_view> GetGRFStringFromGRFText(const GRFTextWrapper &text)
 {
@@ -628,6 +651,8 @@ std::optional<std::string_view> GetGRFStringFromGRFText(const GRFTextWrapper &te
 
 /**
  * Get a C-string from a stringid set by a newgrf.
+ * @param stringid The index of the string in the NewGRF string-tab.
+ * @return The raw string.
  */
 std::string_view GetGRFStringPtr(StringIndexInTab stringid)
 {
@@ -641,23 +666,10 @@ std::string_view GetGRFStringPtr(StringIndexInTab stringid)
 	return GetStringPtr(_grf_text[stringid].def_string);
 }
 
-/**
- * Equivalence Setter function between game and newgrf langID.
- * This function will adjust _currentLangID as to what is the LangID
- * of the current language set by the user.
- * This function is called after the user changed language,
- * from strings.cpp:ReadLanguagePack
- * @param language_id iso code of current selection
- */
-void SetCurrentGrfLangID(uint8_t language_id)
-{
-	_current_lang_id = language_id;
-}
-
 bool CheckGrfLangID(uint8_t lang_id, uint8_t grf_version)
 {
 	if (grf_version < 7) {
-		switch (_current_lang_id) {
+		switch (_current_language->newgrflangid) {
 			case GRFLX_GERMAN:  return (lang_id & GRFLB_GERMAN)  != 0;
 			case GRFLX_FRENCH:  return (lang_id & GRFLB_FRENCH)  != 0;
 			case GRFLX_SPANISH: return (lang_id & GRFLB_SPANISH) != 0;
@@ -665,7 +677,7 @@ bool CheckGrfLangID(uint8_t lang_id, uint8_t grf_version)
 		}
 	}
 
-	return (lang_id == _current_lang_id || lang_id == GRFLX_UNSPECIFIED);
+	return (lang_id == _current_language->newgrflangid || lang_id == GRFLX_UNSPECIFIED);
 }
 
 /**

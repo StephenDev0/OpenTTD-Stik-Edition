@@ -5,7 +5,7 @@
  * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <https://www.gnu.org/licenses/old-licenses/gpl-2.0>.
  */
 
-/** @file map_sl.cpp Code handling saving and loading of map */
+/** @file map_sl.cpp Code handling saving and loading of map. */
 
 #include "../stdafx.h"
 
@@ -22,8 +22,8 @@ static uint32_t _map_dim_x;
 static uint32_t _map_dim_y;
 
 static const SaveLoad _map_desc[] = {
-	SLEG_CONDVAR("dim_x", _map_dim_x, SLE_UINT32, SLV_6, SL_MAX_VERSION),
-	SLEG_CONDVAR("dim_y", _map_dim_y, SLE_UINT32, SLV_6, SL_MAX_VERSION),
+	SLEG_CONDVAR("dim_x", _map_dim_x, SLE_UINT32, SLV_MULTIPLE_ROAD_STOPS, SL_MAX_VERSION),
+	SLEG_CONDVAR("dim_y", _map_dim_y, SLE_UINT32, SLV_MULTIPLE_ROAD_STOPS, SL_MAX_VERSION),
 };
 
 struct MAPSChunkHandler : ChunkHandler {
@@ -158,7 +158,7 @@ struct MAP2ChunkHandler : ChunkHandler {
 		for (TileIndex i{}; i != size;) {
 			SlCopy(buf.data(), MAP_SL_BUF_SIZE,
 				/* In those versions the m2 was 8 bits */
-				IsSavegameVersionBefore(SLV_5) ? SLE_FILE_U8 | SLE_VAR_U16 : SLE_UINT16
+				IsSavegameVersionBefore(SLV_BIG_MAP) ? SLE_FILE_U8 | SLE_VAR_U16 : SLE_UINT16
 			);
 			for (uint j = 0; j != MAP_SL_BUF_SIZE; j++) Tile(i++).m2() = buf[j];
 		}
@@ -266,7 +266,7 @@ struct MAPEChunkHandler : ChunkHandler {
 		std::array<uint8_t, MAP_SL_BUF_SIZE> buf;
 		uint size = Map::Size();
 
-		if (IsSavegameVersionBefore(SLV_42)) {
+		if (IsSavegameVersionBefore(SLV_BRIDGE_WORMHOLE)) {
 			for (TileIndex i{}; i != size;) {
 				/* 1024, otherwise we overflow on 64x64 maps! */
 				SlCopy(buf.data(), 1024, SLE_UINT8);

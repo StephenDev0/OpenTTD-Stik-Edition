@@ -5,7 +5,7 @@
  * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <https://www.gnu.org/licenses/old-licenses/gpl-2.0>.
  */
 
-/** @file linkgraph_sl.cpp Code handling saving and loading of link graphs */
+/** @file linkgraph_sl.cpp Code handling saving and loading of link graphs. */
 
 #include "../stdafx.h"
 
@@ -35,7 +35,7 @@ public:
 		    SLE_VAR(Edge, usage,                    SLE_UINT32),
 		SLE_CONDVAR(Edge, travel_time_sum,          SLE_UINT64, SLV_LINKGRAPH_TRAVEL_TIME, SL_MAX_VERSION),
 		    SLE_VAR(Edge, last_unrestricted_update, SLE_INT32),
-		SLE_CONDVAR(Edge, last_restricted_update,   SLE_INT32, SLV_187, SL_MAX_VERSION),
+		SLE_CONDVAR(Edge, last_restricted_update,   SLE_INT32, SLV_LINKGRAPH_RESTRICTED_FLOW, SL_MAX_VERSION),
 		    SLE_VAR(Edge, dest_node,                SLE_UINT16),
 		SLE_CONDVARNAME(Edge, dest_node, "next_edge", SLE_UINT16, SL_MIN_VERSION, SLV_LINKGRAPH_EDGES),
 	};
@@ -55,7 +55,7 @@ public:
 			uint16_t max_size = _linkgraph->Size();
 			std::vector<Edge> edges(max_size);
 
-			if (IsSavegameVersionBefore(SLV_191)) {
+			if (IsSavegameVersionBefore(SLV_LINKGRAPH_LOCATION_DISASTER_STORE)) {
 				/* We used to save the full matrix ... */
 				for (NodeID to = 0; to < max_size; ++to) {
 					SlObject(&edges[to], this->GetLoadDescription());
@@ -96,7 +96,7 @@ public:
 class SlLinkgraphNode : public DefaultSaveLoadHandler<SlLinkgraphNode, LinkGraph> {
 public:
 	static inline const SaveLoad description[] = {
-		SLE_CONDVAR(Node, xy,          SLE_UINT32, SLV_191, SL_MAX_VERSION),
+		SLE_CONDVAR(Node, xy,          SLE_UINT32, SLV_LINKGRAPH_LOCATION_DISASTER_STORE, SL_MAX_VERSION),
 		    SLE_VAR(Node, supply,      SLE_UINT32),
 		    SLE_VAR(Node, demand,      SLE_UINT32),
 		    SLE_VAR(Node, station,     SLE_UINT16),
@@ -153,7 +153,7 @@ SaveLoadTable GetLinkGraphDesc()
  */
 class SlLinkgraphJobProxy : public DefaultSaveLoadHandler<SlLinkgraphJobProxy, LinkGraphJob> {
 public:
-	static inline const SaveLoad description[] = {{}}; // Needed to keep DefaultSaveLoadHandler happy.
+	static inline const SaveLoad description[] = {{}}; ///< Needed to keep DefaultSaveLoadHandler happy.
 	SaveLoadTable GetDescription() const override { return GetLinkGraphDesc(); }
 	static inline const SaveLoadCompatTable compat_description = _linkgraph_sl_compat;
 
@@ -231,7 +231,7 @@ SaveLoadTable GetLinkGraphScheduleDesc()
  */
 void AfterLoadLinkGraphs()
 {
-	if (IsSavegameVersionBefore(SLV_191)) {
+	if (IsSavegameVersionBefore(SLV_LINKGRAPH_LOCATION_DISASTER_STORE)) {
 		for (LinkGraph *lg : LinkGraph::Iterate()) {
 			for (NodeID node_id = 0; node_id < lg->Size(); ++node_id) {
 				const Station *st = Station::GetIfValid((*lg)[node_id].station);
@@ -277,7 +277,7 @@ struct LGRPChunkHandler : ChunkHandler {
 
 		int index;
 		while ((index = SlIterateArray()) != -1) {
-			LinkGraph *lg = new (LinkGraphID(index)) LinkGraph();
+			LinkGraph *lg = LinkGraph::CreateAtIndex(LinkGraphID(index));
 			SlObject(lg, slt);
 		}
 	}
@@ -305,7 +305,7 @@ struct LGRJChunkHandler : ChunkHandler {
 
 		int index;
 		while ((index = SlIterateArray()) != -1) {
-			LinkGraphJob *lgj = new (LinkGraphJobID(index)) LinkGraphJob();
+			LinkGraphJob *lgj = LinkGraphJob::CreateAtIndex(LinkGraphJobID(index));
 			SlObject(lgj, slt);
 		}
 	}

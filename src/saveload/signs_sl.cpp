@@ -5,7 +5,7 @@
  * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <https://www.gnu.org/licenses/old-licenses/gpl-2.0>.
  */
 
-/** @file signs_sl.cpp Code handling saving and loading of economy data */
+/** @file signs_sl.cpp Code handling saving and loading of economy data. */
 
 #include "../stdafx.h"
 
@@ -19,15 +19,16 @@
 
 /** Description of a sign within the savegame. */
 static const SaveLoad _sign_desc[] = {
-	SLE_CONDVAR(Sign, name,  SLE_NAME,                   SL_MIN_VERSION, SLV_84),
-	SLE_CONDSSTR(Sign, name, SLE_STR | SLF_ALLOW_CONTROL, SLV_84, SL_MAX_VERSION),
-	SLE_CONDVAR(Sign, x,     SLE_FILE_I16 | SLE_VAR_I32, SL_MIN_VERSION, SLV_5),
-	SLE_CONDVAR(Sign, y,     SLE_FILE_I16 | SLE_VAR_I32, SL_MIN_VERSION, SLV_5),
-	SLE_CONDVAR(Sign, x,     SLE_INT32,                  SLV_5, SL_MAX_VERSION),
-	SLE_CONDVAR(Sign, y,     SLE_INT32,                  SLV_5, SL_MAX_VERSION),
-	SLE_CONDVAR(Sign, owner, SLE_UINT8,                  SLV_6, SL_MAX_VERSION),
-	SLE_CONDVAR(Sign, z,     SLE_FILE_U8  | SLE_VAR_I32, SL_MIN_VERSION, SLV_164),
-	SLE_CONDVAR(Sign, z,     SLE_INT32,                SLV_164, SL_MAX_VERSION),
+	SLE_CONDVAR(Sign, name, SLE_NAME, SL_MIN_VERSION, SLV_REPLACE_CUSTOM_NAME_ARRAY),
+	SLE_CONDSSTR(Sign, name, SLE_STR | SLF_ALLOW_CONTROL, SLV_REPLACE_CUSTOM_NAME_ARRAY, SL_MAX_VERSION),
+	SLE_CONDVAR(Sign, x, SLE_FILE_I16 | SLE_VAR_I32, SL_MIN_VERSION, SLV_BIG_MAP),
+	SLE_CONDVAR(Sign, y, SLE_FILE_I16 | SLE_VAR_I32, SL_MIN_VERSION, SLV_BIG_MAP),
+	SLE_CONDVAR(Sign, x, SLE_INT32, SLV_BIG_MAP, SL_MAX_VERSION),
+	SLE_CONDVAR(Sign, y, SLE_INT32, SLV_BIG_MAP, SL_MAX_VERSION),
+	SLE_CONDVAR(Sign, owner, SLE_UINT8, SLV_MULTIPLE_ROAD_STOPS, SL_MAX_VERSION),
+	SLE_CONDVAR(Sign, z, SLE_FILE_U8  | SLE_VAR_I32, SL_MIN_VERSION, SLV_VEHICLE_CENTRE_AND_Z_POS),
+	SLE_CONDVAR(Sign, z, SLE_INT32, SLV_VEHICLE_CENTRE_AND_Z_POS, SL_MAX_VERSION),
+	SLE_CONDVAR(Sign, text_colour, SLE_UINT8, SLV_SIGN_TEXT_COLOURS, SL_MAX_VERSION),
 };
 
 struct SIGNChunkHandler : ChunkHandler {
@@ -49,7 +50,7 @@ struct SIGNChunkHandler : ChunkHandler {
 
 		int index;
 		while ((index = SlIterateArray()) != -1) {
-			Sign *si = new (SignID(index)) Sign();
+			Sign *si = Sign::CreateAtIndex(SignID(index));
 			SlObject(si, slt);
 			/* Before version 6.1, signs didn't have owner.
 			 * Before version 83, invalid signs were determined by si->str == 0.
@@ -57,12 +58,12 @@ struct SIGNChunkHandler : ChunkHandler {
 			 *  - we can't use IsValidCompany() now, so this is fixed in AfterLoadGame()
 			 * All signs that were saved are valid (including those with just 'Sign' and INVALID_OWNER).
 			 *  - so set owner to OWNER_NONE if needed (signs from pre-version 6.1 would be lost) */
-			if (IsSavegameVersionBefore(SLV_6, 1) || (IsSavegameVersionBefore(SLV_83) && si->owner == INVALID_OWNER)) {
+			if (IsSavegameVersionBefore(SLV_MULTIPLE_ROAD_STOPS, 1) || (IsSavegameVersionBefore(SLV_DEPOT_WATER_OWNERS) && si->owner == INVALID_OWNER)) {
 				si->owner = OWNER_NONE;
 			}
 
 			/* Signs placed in scenario editor shall now be OWNER_DEITY */
-			if (IsSavegameVersionBefore(SLV_171) && si->owner == OWNER_NONE && _file_to_saveload.ftype.abstract == FT_SCENARIO) {
+			if (IsSavegameVersionBefore(SLV_SCENARIO_DEITY_SIGNS) && si->owner == OWNER_NONE && _file_to_saveload.ftype.abstract == AbstractFileType::Scenario) {
 				si->owner = OWNER_DEITY;
 			}
 		}

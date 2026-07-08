@@ -118,7 +118,7 @@ CommandCost CmdPlacePlayerHouse(DoCommandFlags flags, TileIndex tile, TownZone z
 	if (IsSteepSlope(slope)) return CommandCost(STR_ERROR_LAND_SLOPED_IN_WRONG_DIRECTION);
 	if (IsBridgeAbove(tile)) return CommandCost(STR_ERROR_MUST_DEMOLISH_BRIDGE_FIRST);
 
-	CommandCost cost = Command<CMD_LANDSCAPE_CLEAR>::Do({DoCommandFlag::Auto, DoCommandFlag::NoWater}, tile);
+	CommandCost cost = Command<Commands::LandscapeClear>::Do({DoCommandFlag::Auto, DoCommandFlag::NoWater}, tile);
 	if (!cost.Succeeded()) return cost;
 
 	Town *t = ClosestTownFromTile(tile, UINT_MAX);

@@ -188,5 +188,5 @@ void UpdateVentures()
 		}
 	}
 
-	SetWindowDirty(WC_VENTURE_CAPITAL, 0);
+	SetWindowDirty(WindowClass::VentureCapital, 0);
 }
