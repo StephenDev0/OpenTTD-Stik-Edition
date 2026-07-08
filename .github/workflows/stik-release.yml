@@ -1,0 +1,255 @@
+name: Stik Release
+
+# CITYSIM: build OpenTTD: Stik Edition for macOS, Windows, Linux and iOS
+# (experimental) whenever a tag is pushed, and attach everything to a
+# GitHub release for that tag.
+
+on:
+  push:
+    tags:
+    - '*'
+  workflow_dispatch:
+
+env:
+  SDL2_VERSION: 2.32.8
+  XZ_VERSION: 5.6.4
+  OPENGFX_VERSION: 7.1
+  OPENSFX_VERSION: 1.0.3
+  IOS_DEPLOYMENT_TARGET: "15.0"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    name: Linux (generic)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          cmake ninja-build \
+          liblzma-dev liblzo2-dev libpng-dev zlib1g-dev \
+          libsdl2-dev libfreetype-dev libfontconfig-dev \
+          libharfbuzz-dev libicu-dev libcurl4-openssl-dev
+
+    - name: Build
+      run: |
+        cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+        cmake --build build --target openttd -j $(nproc)
+
+    - name: Package
+      run: |
+        cd build
+        cpack
+        ls bundles
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: stik-linux
+        path: |
+          build/bundles/*.txz
+          build/bundles/*.deb
+          build/bundles/*.tar.xz
+
+  macos:
+    name: macOS (arm64)
+    runs-on: macos-15
+    timeout-minutes: 60
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: brew install ninja libpng lzo xz
+
+    - name: Build
+      run: |
+        cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+        cmake --build build --target openttd -j $(sysctl -n hw.logicalcpu)
+
+    - name: Package
+      run: |
+        cd build
+        cpack
+        ls bundles
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: stik-macos
+        path: build/bundles/*.dmg
+
+  windows:
+    name: Windows (x64)
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup vcpkg
+      id: vcpkg
+      uses: OpenTTD/actions/setup-vcpkg@v6
+
+    - name: Configure developer command prompt for x64
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Build
+      shell: bash
+      run: |
+        mkdir build
+        cd build
+        cmake .. \
+          -GNinja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DVCPKG_TARGET_TRIPLET=x64-windows-static \
+          -DCMAKE_TOOLCHAIN_FILE="${{ steps.vcpkg.outputs.vcpkg-cmake }}" \
+          # EOF
+        cmake --build . --target openttd
+
+    - name: Package
+      shell: bash
+      run: |
+        cd build
+        cpack -G ZIP
+        ls bundles
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: stik-windows
+        path: build/bundles/*.zip
+
+  ios:
+    name: iOS (experimental, unsigned .ipa)
+    runs-on: macos-15
+    timeout-minutes: 60
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: brew install ninja
+
+    - name: Cache iOS libraries
+      id: cache-deps
+      uses: actions/cache@v4
+      with:
+        path: deps
+        key: ios-deps-sdl${{ env.SDL2_VERSION }}-xz${{ env.XZ_VERSION }}-${{ env.IOS_DEPLOYMENT_TARGET }}-${{ hashFiles('os/ios/patches/*.patch') }}
+
+    - name: Build SDL2 for iOS
+      if: steps.cache-deps.outputs.cache-hit != 'true'
+      run: |
+        curl -sfLO https://github.com/libsdl-org/SDL/releases/download/release-${SDL2_VERSION}/SDL2-${SDL2_VERSION}.tar.gz
+        tar xzf SDL2-${SDL2_VERSION}.tar.gz
+        for p in os/ios/patches/sdl2-*.patch; do patch -d SDL2-${SDL2_VERSION} -p1 < "$p"; done
+        cmake -S SDL2-${SDL2_VERSION} -B sdl2-build -G Ninja \
+          -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_ARCHITECTURES=arm64 \
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=${IOS_DEPLOYMENT_TARGET} -DCMAKE_BUILD_TYPE=Release \
+          -DSDL_STATIC=ON -DSDL_SHARED=OFF -DSDL_TEST=OFF \
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+          -DCMAKE_INSTALL_PREFIX=${PWD}/deps/sdl2-ios
+        cmake --build sdl2-build -j
+        cmake --install sdl2-build
+
+    - name: Build liblzma for iOS
+      if: steps.cache-deps.outputs.cache-hit != 'true'
+      run: |
+        curl -sfLO https://github.com/tukaani-project/xz/releases/download/v${XZ_VERSION}/xz-${XZ_VERSION}.tar.gz
+        tar xzf xz-${XZ_VERSION}.tar.gz
+        cmake -S xz-${XZ_VERSION} -B xz-build -G Ninja \
+          -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_ARCHITECTURES=arm64 \
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=${IOS_DEPLOYMENT_TARGET} -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_INSTALL_PREFIX=${PWD}/deps/liblzma-ios
+        cmake --build xz-build --target liblzma -j
+        cmake --install xz-build --component liblzma_Development
+
+    - name: Download basesets (OpenGFX + OpenSFX)
+      run: |
+        mkdir -p baseset-content
+        curl -sfLO https://cdn.openttd.org/opengfx-releases/${OPENGFX_VERSION}/opengfx-${OPENGFX_VERSION}-all.zip
+        unzip -oq opengfx-${OPENGFX_VERSION}-all.zip
+        tar xf opengfx-${OPENGFX_VERSION}.tar
+        cp opengfx-${OPENGFX_VERSION}/*.grf opengfx-${OPENGFX_VERSION}/*.obg baseset-content/
+        cp opengfx-${OPENGFX_VERSION}/license.txt baseset-content/opengfx-license.txt
+        curl -sfLO https://cdn.openttd.org/opensfx-releases/${OPENSFX_VERSION}/opensfx-${OPENSFX_VERSION}-all.zip
+        unzip -oq opensfx-${OPENSFX_VERSION}-all.zip
+        tar xf opensfx-${OPENSFX_VERSION}.tar
+        cp opensfx-${OPENSFX_VERSION}/opensfx.obs opensfx-${OPENSFX_VERSION}/opensfx.cat baseset-content/
+        cp opensfx-${OPENSFX_VERSION}/license.txt baseset-content/opensfx-license.txt
+
+    - name: Build host tools
+      run: |
+        cmake -S . -B build-host -G Ninja -DOPTION_TOOLS_ONLY=ON -DCMAKE_BUILD_TYPE=Release
+        cmake --build build-host --target tools -j
+
+    - name: Build OpenTTD for iOS
+      run: |
+        cmake -S . -B build-ios -G Ninja \
+          -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_ARCHITECTURES=arm64 \
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=${IOS_DEPLOYMENT_TARGET} -DCMAKE_BUILD_TYPE=Release \
+          -DHOST_BINARY_DIR=${PWD}/build-host \
+          -DSDL2_DIR=${PWD}/deps/sdl2-ios/lib/cmake/SDL2 \
+          -DLIBLZMA_LIBRARY=${PWD}/deps/liblzma-ios/lib/liblzma.a \
+          -DLIBLZMA_INCLUDE_DIR=${PWD}/deps/liblzma-ios/include \
+          -DOPTION_IOS_BUNDLE_CONTENT=${PWD}/baseset-content
+        cmake --build build-ios --target openttd -j
+
+    - name: Package unsigned .ipa
+      run: |
+        cd build-ios
+        mkdir Payload
+        cp -R openttd.app Payload/
+        zip -qry OpenTTD-Stik-Edition-unsigned.ipa Payload
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: stik-ios
+        path: build-ios/OpenTTD-Stik-Edition-unsigned.ipa
+
+  release:
+    name: Create GitHub release
+    needs:
+    - linux
+    - macos
+    - windows
+    - ios
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+        merge-multiple: true
+
+    - name: Create release and attach builds
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        ls -R artifacts
+        gh release create "${{ github.ref_name }}" \
+          --repo "${{ github.repository }}" \
+          --title "OpenTTD: Stik Edition ${{ github.ref_name }}" \
+          --notes "Automated build of OpenTTD: Stik Edition for tag ${{ github.ref_name }}. Contains macOS (arm64), Windows (x64), Linux (generic) and an experimental unsigned iOS .ipa for sideloading." \
+          artifacts/* || gh release upload "${{ github.ref_name }}" --repo "${{ github.repository }}" artifacts/*
