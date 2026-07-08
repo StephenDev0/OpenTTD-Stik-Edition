@@ -119,7 +119,7 @@ static constexpr std::initializer_list<NWidgetPart> _nested_town_zones_widgets =
 };
 
 static WindowDesc _town_zones_desc(
-	WDP_AUTO, "town_zones", 0, 0,
+	WindowPosition::Automatic, "town_zones", 0, 0,
 	WindowClass::TownZones, WindowClass::TownView,
 	{},
 	_nested_town_zones_widgets

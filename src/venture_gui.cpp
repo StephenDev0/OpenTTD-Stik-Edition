@@ -151,7 +151,7 @@ static constexpr std::initializer_list<NWidgetPart> _nested_ventures_widgets = {
 };
 
 static WindowDesc _ventures_desc(
-	WDP_AUTO, "ventures", 0, 0,
+	WindowPosition::Automatic, "ventures", 0, 0,
 	WindowClass::VentureCapital, WindowClass::None,
 	{},
 	_nested_ventures_widgets
